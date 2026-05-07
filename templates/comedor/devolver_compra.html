@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Devolución de Viandas{% endblock %}
+{% block navbar %}{% include 'comedor/_navbar.html' %}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-10">
+            <div class="card shadow-lg border-0 mb-4">
+                <div class="card-header bg-primary text-white text-center py-3">
+                    <h2 class="my-0 fw-bold">
+                        <i class="bi bi-arrow-return-left me-2"></i>
+                        Devolución de Viandas
+                    </h2>
+                </div>
+                <div class="card-body p-4">
+
+                    <div class="alert alert-info border-0">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        Al devolver una vianda, el monto se acredita como saldo
+                        en tu cuenta para futuras compras.
+                    </div>
+
+                    {% if compras %}
+                    <form method="post" id="formDevolucion">
+                        {% csrf_token %}
+                        <div class="d-flex overflow-auto gap-3 pb-3">
+                            {% for compra in compras %}
+                            <div class="flex-shrink-0" style="width: 240px;">
+                                <div class="card h-100">
+                                    <div class="card-header bg-primary text-white d-flex
+                                                justify-content-between align-items-center">
+                                        <div>
+                                            <h5 class="mb-0 fw-semibold">
+                                                {{ compra.dia_comprado|date:"l d/m"|capfirst }}
+                                            </h5>
+                                        </div>
+                                        <div class="form-check form-switch m-0">
+                                            <input class="form-check-input checkbox-devolver"
+                                                   type="checkbox"
+                                                   name="devolver"
+                                                   value="{{ compra.id }}"
+                                                   data-precio="{{ compra.precio }}">
+                                        </div>
+                                    </div>
+                                    <div class="card-body p-3">
+                                        <p class="mb-2">
+                                            <strong>Turno:</strong>
+                                            {{ compra.get_turno_display }}
+                                        </p>
+                                        <p class="mb-2">
+                                            <strong>Menú:</strong>
+                                            {{ compra.get_menu_display }}
+                                        </p>
+                                        <p class="mb-0">
+                                            <strong>Costo:</strong>
+                                            <span class="text-success fw-bold">
+                                                ${{ compra.precio }}
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Resumen -->
+                        <div class="row mt-4 justify-content-center">
+                            <div class="col-md-6">
+                                <div class="card shadow-sm">
+                                    <div class="card-header bg-danger text-white text-center">
+                                        <h5 class="mb-0">Resumen de Devolución</h5>
+                                    </div>
+                                    <div class="card-body p-4">
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>Viandas seleccionadas:</span>
+                                            <span class="fw-bold" id="cantidadDevolver">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span>Monto total:</span>
+                                            <span class="fw-bold text-success"
+                                                  id="montoDevolver">$0.00</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-3 d-md-flex justify-content-md-center mt-4">
+                            <button type="button" id="btnConfirmar"
+                                    class="btn btn-danger btn-lg flex-fill py-3" disabled>
+                                <i class="bi bi-arrow-return-left me-2"></i>Confirmar Devolución
+                            </button>
+                            <button type="reset"
+                                    class="btn btn-warning btn-lg flex-fill py-3">
+                                <i class="bi bi-arrow-counterclockwise me-2"></i>Reiniciar
+                            </button>
+                        </div>
+                    </form>
+
+                    {% else %}
+                    <div class="text-center my-5">
+                        <h4 class="mb-3">No hay viandas disponibles para devolver.</h4>
+                        <a href="{% url 'comedor:index' %}" class="btn btn-primary btn-lg">
+                            <i class="bi bi-cart-plus me-2"></i>Comprar Viandas
+                        </a>
+                    </div>
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal confirmación -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirmar Devolución</h5>
+                <button type="button" class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Vas a devolver <strong id="modalCantidad">0</strong> vianda(s).</p>
+                <p>Se acreditarán <strong class="text-success" id="modalMonto">$0.00</strong>
+                   a tu saldo.</p>
+                <p class="text-center mt-3">¿Confirmás?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary"
+                        data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger"
+                        id="confirmarDevolucion">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function actualizarResumen() {
+    const checks = document.querySelectorAll('.checkbox-devolver:checked');
+    let cantidad = checks.length;
+    let monto = 0;
+    checks.forEach(c => monto += parseFloat(c.dataset.precio));
+
+    document.getElementById('cantidadDevolver').textContent = cantidad;
+    document.getElementById('montoDevolver').textContent = '$' + monto.toFixed(2);
+    document.getElementById('btnConfirmar').disabled = cantidad === 0;
+}
+
+document.querySelectorAll('.checkbox-devolver').forEach(c => {
+    c.addEventListener('change', actualizarResumen);
+});
+
+document.getElementById('btnConfirmar')?.addEventListener('click', function() {
+    const cantidad = document.getElementById('cantidadDevolver').textContent;
+    const monto = document.getElementById('montoDevolver').textContent;
+    document.getElementById('modalCantidad').textContent = cantidad;
+    document.getElementById('modalMonto').textContent = monto;
+    new bootstrap.Modal(document.getElementById('confirmModal')).show();
+});
+
+document.getElementById('confirmarDevolucion')?.addEventListener('click', function() {
+    document.getElementById('formDevolucion').submit();
+});
+</script>
+{% endblock %}

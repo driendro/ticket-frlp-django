@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Menú Semanal{% endblock %}
+{% block navbar %}{% include 'comedor/_navbar.html' %}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="text-center fw-bold mb-5">Menú Semanal</h1>
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4 justify-content-center">
+        {% for item in menu %}
+        <div class="col">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-header bg-dark text-white text-center py-3">
+                    <h5 class="mb-0 fw-bold">{{ item.get_dia_display }}</h5>
+                </div>
+                <div class="card-body p-4 text-center">
+                    <div class="mb-3 pb-3 border-bottom">
+                        <h6 class="fw-bold text-primary">Menú Básico</h6>
+                        <p class="mb-0">{{ item.menu_basico|default:"A confirmar" }}</p>
+                    </div>
+                    <div class="mb-3 pb-3 border-bottom">
+                        <h6 class="fw-bold text-success">Vegetariano</h6>
+                        <p class="mb-0">{{ item.menu_veggie|default:"A confirmar" }}</p>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-warning">Sin TACC</h6>
+                        <p class="mb-0">{{ item.menu_sin_tacc|default:"A confirmar" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center">
+            <p class="text-muted">El menú no está disponible todavía.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

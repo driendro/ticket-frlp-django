@@ -2,6 +2,8 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+#from apps.core.models import Precio
+
 
 class CustomUser(AbstractUser):
 
@@ -44,6 +46,17 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return f"{self.apellido}, {self.first_name} - DNI: {self.documento}"
+
+    def get_precio(self):
+        """Retorna el costo de la vianda según tipo y beca."""
+        if self.es_becado:
+            tipo = 'Becado'
+        else:
+            tipo = self.tipo
+        #try:
+            #return Precio.objects.get(tipo_user=tipo).costo
+        #except Precio.DoesNotExist:
+        #    return 0
 
     @property
     def nombre(self):

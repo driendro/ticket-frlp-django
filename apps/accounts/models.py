@@ -1,8 +1,6 @@
 # apps/accounts/models.py
-from django.contrib.auth.models import AbstractUser
 from django.db import models
-
-#from apps.core.models import Precio
+from django.contrib.auth.models import AbstractUser
 
 
 class CustomUser(AbstractUser):
@@ -22,7 +20,6 @@ class CustomUser(AbstractUser):
         ('Sistemas', 'Sistemas'),
     ]
 
-    # Campos del sistema original
     tipo = models.CharField(
         max_length=20, choices=TIPO_CHOICES, default='Estudiante')
     legajo = models.IntegerField(unique=True, null=True, blank=True)
@@ -36,7 +33,6 @@ class CustomUser(AbstractUser):
     saldo = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     es_becado = models.BooleanField(default=False)
 
-    # Hacemos que el login sea por documento
     USERNAME_FIELD = 'documento'
     REQUIRED_FIELDS = ['username', 'email']
 
@@ -45,18 +41,7 @@ class CustomUser(AbstractUser):
         verbose_name_plural = 'Usuarios'
 
     def __str__(self):
-        return f"{self.apellido}, {self.first_name} - DNI: {self.documento}"
-
-    def get_precio(self):
-        """Retorna el costo de la vianda según tipo y beca."""
-        if self.es_becado:
-            tipo = 'Becado'
-        else:
-            tipo = self.tipo
-        #try:
-            #return Precio.objects.get(tipo_user=tipo).costo
-        #except Precio.DoesNotExist:
-        #    return 0
+        return f"{self.last_name}, {self.first_name} - DNI: {self.documento}"
 
     @property
     def nombre(self):
@@ -69,3 +54,12 @@ class CustomUser(AbstractUser):
     @property
     def nombre_completo(self):
         return f"{self.last_name}, {self.first_name}"
+
+    def get_precio(self):
+        """Retorna el costo de la vianda según tipo y beca."""
+        from apps.core.models import Precio
+        tipo = 'Becado' if self.es_becado else self.tipo
+        try:
+            return Precio.objects.get(tipo_user=tipo).costo
+        except Precio.DoesNotExist:
+            return 0

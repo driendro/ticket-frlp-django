@@ -1,0 +1,353 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Comprar Viandas - UTN FRLP{% endblock %}
+
+{% block navbar %}
+{% include 'comedor/_navbar.html' %}
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show d-flex align-items-center gap-3"
+         role="alert">
+        <i class="bi bi-exclamation-triangle-fill fs-4"></i>
+        <div>{{ message }}</div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+{% endif %}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-10 col-lg-9">
+            <div class="card shadow-lg mb-5 border-0">
+
+                <div class="card-header bg-primary text-white text-center py-3">
+                    <img class="img-fluid mx-auto d-block mb-2"
+                         src="{% static 'img/utn.png' %}"
+                         alt="Logo UTN FRLP"
+                         style="max-height: 60px;">
+                    <h2 class="my-0 fw-bold">Ticket Web - Compra de Viandas - UTN FRLP</h2>
+                </div>
+
+                <div class="card-body p-4">
+
+                    <!-- Saldo -->
+                    <div class="alert d-flex flex-column flex-sm-row align-items-center
+                                justify-content-between mb-4 border-0 bg-light">
+                        <div class="d-flex align-items-center mb-3 mb-sm-0">
+                            <div>
+                                <strong>Saldo disponible:</strong>
+                                <span class="fs-4 fw-bold ms-2">${{ usuario.saldo }}</span>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-column flex-sm-row text-center gap-2">
+                            <a href="{% url 'comedor:faq' %}" class="btn btn-primary btn-lg shadow-sm">
+                                <i class="bi bi-question-circle me-2"></i>Preguntas Frecuentes
+                            </a>
+                            <a href="https://forms.office.com/r/95Nm8WSntH"
+                               target="_blank"
+                               class="btn btn-danger btn-lg shadow-sm">
+                                <i class="bi bi-envelope-fill me-2"></i>Reportar un problema
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Aviso -->
+                    <div class="alert alert-primary alert-dismissible fade show mb-4 border-0">
+                        <i class="bi bi-lightbulb-fill me-2"></i>
+                        <strong>Importante:</strong> Tu saldo se aplica automáticamente.
+                        Si es suficiente, no necesitás pagar adicionalmente.
+                        Si es parcial, solo abonás la diferencia por Mercado Pago.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+
+                    <!-- Inputs ocultos para JS -->
+                    <input type="number" id="saldoCuenta" value="{{ usuario.saldo }}" hidden>
+                    <input type="number" id="costoVianda" value="{{ costo_vianda }}" hidden>
+
+                    <form method="post" action="{% url 'comedor:index' %}" id="formCompra" autocomplete="off">
+                        {% csrf_token %}
+
+                        <!-- Semanas -->
+                        <div class="accordion mb-4" id="accordionSemanas">
+                            {% for semana in semanas %}
+                            <div class="accordion-item mb-3 shadow-sm border">
+                                <h2 class="accordion-header" id="heading{{ semana.indice }}">
+                                    <button class="accordion-button {% if not semana.es_semana_actual %}collapsed{% endif %}"
+                                            type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#collapse{{ semana.indice }}"
+                                            aria-expanded="{{ semana.es_semana_actual|yesno:'true,false' }}">
+                                        {% if semana.es_semana_actual %}
+                                            <strong>Esta Semana</strong>
+                                        {% else %}
+                                            <span class="d-none d-md-inline">Semana del&nbsp;</span>
+                                            <strong>{{ semana.inicio }}</strong>&nbsp;al&nbsp;
+                                            <strong>{{ semana.fin }}</strong>
+                                        {% endif %}
+                                    </button>
+                                </h2>
+                                <div id="collapse{{ semana.indice }}"
+                                     class="accordion-collapse collapse {% if semana.es_semana_actual %}show{% endif %}">
+                                    <div class="accordion-body">
+                                        <div class="d-flex overflow-auto pb-3 gap-3">
+                                            {% for dia in semana.dias %}
+                                            <div class="flex-shrink-0" style="width: 250px;">
+                                                <div class="card h-100
+                                                    {% if dia.es_feriado %}border-warning{% endif %}
+                                                    {% if dia.es_receso %}border-info{% endif %}">
+
+                                                    <div class="card-header text-center py-2
+                                                        {% if dia.es_feriado %}bg-warning text-dark
+                                                        {% elif dia.es_receso %}bg-info text-dark
+                                                        {% else %}bg-primary text-white{% endif %}">
+                                                        <h5 class="mb-0 fw-bold text-capitalize">
+                                                            {{ dia.nombre }}
+                                                            <span>{{ dia.fecha_display }}</span>
+                                                        </h5>
+                                                        {% if dia.es_receso %}
+                                                            <span class="badge bg-light text-dark">
+                                                                <i class="bi bi-snow me-1"></i>RECESO
+                                                            </span>
+                                                        {% elif dia.es_feriado %}
+                                                            <span class="badge bg-light text-dark">
+                                                                <i class="bi bi-calendar-x me-1"></i>FERIADO
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+
+                                                    <div class="card-body">
+
+                                                        <!-- Turno Mediodía -->
+                                                        <div class="mb-3 p-2 rounded-3 border bg-white
+                                                            {% if dia.deshabilitar_manana %}opacity-50{% endif %}">
+                                                            <label class="fw-bold">
+                                                                <i class="bi bi-sun me-2"></i>Mediodía
+                                                            </label>
+                                                            {% if dia.comprado_manana %}
+                                                                <div class="mt-1">
+                                                                    <span class="badge bg-success w-100">
+                                                                        <i class="bi bi-check-circle me-1"></i>
+                                                                        Comprado: {{ dia.menu_manana }}
+                                                                    </span>
+                                                                </div>
+                                                            {% endif %}
+                                                            <select class="form-select form-select-sm mt-2 meal-select"
+                                                                    name="selectMenu[{{ dia.fecha_ymd }}][manana]"
+                                                                    data-date="{{ dia.fecha_ymd }}"
+                                                                    data-time="manana"
+                                                                    {% if dia.deshabilitar_manana %}disabled{% endif %}>
+                                                                <option value="seleccionar">Seleccionar</option>
+                                                                <option value="Basico">Menú Básico</option>
+                                                                <option value="Veggie">Menú Vegetariano</option>
+                                                                <option value="Celiaco">Sin TACC</option>
+                                                            </select>
+                                                        </div>
+
+                                                        <hr class="my-2">
+
+                                                        <!-- Turno Noche -->
+                                                        <div class="p-2 rounded-3 border bg-white
+                                                            {% if dia.deshabilitar_noche %}opacity-50{% endif %}">
+                                                            <label class="fw-bold">
+                                                                <i class="bi bi-moon me-2"></i>Noche
+                                                            </label>
+                                                            {% if dia.comprado_noche %}
+                                                                <div class="mt-1">
+                                                                    <span class="badge bg-success w-100">
+                                                                        <i class="bi bi-check-circle me-1"></i>
+                                                                        Comprado: {{ dia.menu_noche }}
+                                                                    </span>
+                                                                </div>
+                                                            {% endif %}
+                                                            <select class="form-select form-select-sm mt-2 meal-select"
+                                                                    name="selectMenu[{{ dia.fecha_ymd }}][noche]"
+                                                                    data-date="{{ dia.fecha_ymd }}"
+                                                                    data-time="noche"
+                                                                    {% if dia.deshabilitar_noche %}disabled{% endif %}>
+                                                                <option value="seleccionar">Seleccionar</option>
+                                                                <option value="Basico">Menú Básico</option>
+                                                                <option value="Veggie">Menú Vegetariano</option>
+                                                                <option value="Celiaco">Sin TACC</option>
+                                                            </select>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Resumen -->
+                        <div class="row mt-5 justify-content-center">
+                            <div class="col-md-8 col-lg-6">
+                                <div class="card shadow-sm mb-4">
+                                    <div class="card-header bg-success text-white text-center py-3">
+                                        <h5 class="mb-0">
+                                            <i class="bi bi-receipt me-2"></i>Resumen de Compra
+                                        </h5>
+                                    </div>
+                                    <div class="card-body p-4">
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>Viandas seleccionadas:</span>
+                                            <span class="fw-bold fs-5" id="cantidadViandas">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>Costo total:</span>
+                                            <strong class="fs-5 text-danger" id="costoDisplay">$0.00</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>Saldo disponible:</span>
+                                            <strong class="fs-5 text-success" id="saldoDisplay"></strong>
+                                        </div>
+                                        <hr>
+                                        <div class="d-flex justify-content-between fw-bold fs-4">
+                                            <span>TOTAL A PAGAR:</span>
+                                            <span id="totalPagar" class="text-success">$0.00</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botones -->
+                        <div class="row mt-4 justify-content-center">
+                            <div class="col-12 col-md-10 col-lg-8">
+                                <div class="d-grid gap-3 d-md-flex justify-content-md-center">
+                                    <button type="submit" id="btnCompra"
+                                            class="btn btn-primary btn-lg flex-fill py-3" disabled>
+                                        <i class="bi bi-cart-check me-2"></i>Confirmar Compra
+                                    </button>
+                                    <button type="reset" id="btnReset"
+                                            class="btn btn-warning btn-lg flex-fill py-3">
+                                        <i class="bi bi-arrow-counterclockwise me-2"></i>Reiniciar
+                                    </button>
+                                    <a href="{% url 'comedor:devolver' %}"
+                                       class="btn btn-danger btn-lg flex-fill py-3">
+                                        <i class="bi bi-arrow-return-left me-2"></i>Devoluciones
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal confirmación -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-check-circle me-2"></i>Confirmar Compra
+                </h5>
+                <button type="button" class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Está a punto de comprar <strong id="modalCantidad">0</strong> viandas.</p>
+                <p>Costo total: <strong class="text-danger" id="modalCosto">$0.00</strong></p>
+                <p>Saldo disponible: <strong class="text-success" id="modalSaldo">$0.00</strong></p>
+                <hr>
+                <p class="fw-bold fs-5">
+                    Total a pagar: <span id="modalTotal">$0.00</span>
+                </p>
+                <p class="text-center">¿Desea continuar?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary"
+                        data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary"
+                        id="confirmBuy">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const costoVianda = parseFloat(document.getElementById('costoVianda').value);
+const saldoUsuario = parseFloat(document.getElementById('saldoCuenta').value);
+const permitirAmbosTurnos = {{ permitir_ambos_turnos|yesno:'true,false' }};
+
+function actualizarResumen() {
+    const selects = document.querySelectorAll('.meal-select:not([disabled])');
+    let cantidad = 0;
+
+    selects.forEach(s => {
+        if (s.value !== 'seleccionar') cantidad++;
+    });
+
+    const costoTotal = cantidad * costoVianda;
+    const totalPagar = Math.max(0, costoTotal - saldoUsuario);
+
+    document.getElementById('cantidadViandas').textContent = cantidad;
+    document.getElementById('costoDisplay').textContent = '$' + costoTotal.toFixed(2);
+    document.getElementById('saldoDisplay').textContent = '$' + saldoUsuario.toFixed(2);
+    document.getElementById('totalPagar').textContent = '$' + totalPagar.toFixed(2);
+    document.getElementById('totalPagar').className = totalPagar > 0 ? 'text-danger' : 'text-success';
+    document.getElementById('btnCompra').disabled = cantidad === 0;
+}
+
+document.querySelectorAll('.meal-select').forEach(select => {
+    select.addEventListener('change', function() {
+        if (!permitirAmbosTurnos) {
+            const fecha = this.dataset.date;
+            const turno = this.dataset.time;
+            const otroTurno = turno === 'manana' ? 'noche' : 'manana';
+            const otroSelect = document.querySelector(
+                `.meal-select[data-date="${fecha}"][data-time="${otroTurno}"]`
+            );
+            if (otroSelect && !otroSelect.closest('.opacity-50')) {
+                otroSelect.disabled = this.value !== 'seleccionar';
+                if (this.value !== 'seleccionar') {
+                    otroSelect.value = 'seleccionar';
+                }
+            }
+        }
+        actualizarResumen();
+    });
+});
+
+document.getElementById('btnCompra').addEventListener('click', function(e) {
+    e.preventDefault();
+    const cantidad = parseInt(document.getElementById('cantidadViandas').textContent);
+    const costoTotal = cantidad * costoVianda;
+    const totalPagar = Math.max(0, costoTotal - saldoUsuario);
+
+    document.getElementById('modalCantidad').textContent = cantidad;
+    document.getElementById('modalCosto').textContent = '$' + costoTotal.toFixed(2);
+    document.getElementById('modalSaldo').textContent = '$' + saldoUsuario.toFixed(2);
+    document.getElementById('modalTotal').textContent = '$' + totalPagar.toFixed(2);
+
+    new bootstrap.Modal(document.getElementById('confirmModal')).show();
+});
+
+document.getElementById('confirmBuy').addEventListener('click', function() {
+    document.getElementById('formCompra').submit();
+});
+
+document.getElementById('btnReset').addEventListener('click', function() {
+    document.querySelectorAll('.meal-select:not([disabled])').forEach(s => {
+        s.value = 'seleccionar';
+    });
+    actualizarResumen();
+});
+
+actualizarResumen();
+</script>
+{% endblock %}

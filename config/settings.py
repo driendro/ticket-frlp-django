@@ -24,6 +24,7 @@ LOCAL_APPS = [
     'apps.accounts',
     'apps.core',
     'apps.comedor',
+    'apps.pagos',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS
@@ -94,3 +95,15 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'comedor:index'
 LOGOUT_REDIRECT_URL = 'accounts:login'
+
+# Mercado Pago
+MP_ACCESS_TOKEN = os.getenv('MP_ACCESS_TOKEN', '')
+MP_PUBLIC_KEY = os.getenv('MP_PUBLIC_KEY', '')
+MP_WEBHOOK_SECRET = os.getenv('MP_WEBHOOK_SECRET', '')
+MP_NOTIFICATION_URL = os.getenv('MP_NOTIFICATION_URL', '')
+MP_BACK_URL_SUCCESS = os.getenv(
+    'MP_BACK_URL_SUCCESS', 'http://localhost:8000/pagos/exitoso/')
+MP_BACK_URL_FAILURE = os.getenv(
+    'MP_BACK_URL_FAILURE', 'http://localhost:8000/pagos/fallido/')
+MP_BACK_URL_PENDING = os.getenv(
+    'MP_BACK_URL_PENDING', 'http://localhost:8000/pagos/pendiente/')

@@ -1,7 +1,9 @@
-# apps/comedor/services.py
 from datetime import datetime, date, timedelta
+from django.db import transaction
+import json
+
 from apps.core.models import Configuracion, Feriado
-from .models import Compra, Transaccion, LogCompra, LogCarga
+from .models import Compra, Transaccion, LogCompra
 
 
 def get_lunes_de_semana(fecha: date) -> date:
@@ -227,8 +229,6 @@ def procesar_compra_con_saldo(compra_pendiente, monto_total: float) -> bool:
     Procesa una compra usando saldo del usuario.
     Equivale a procesarCompraConSaldo() de CI3.
     """
-    from django.db import transaction
-    import json
 
     usuario = compra_pendiente.usuario
 

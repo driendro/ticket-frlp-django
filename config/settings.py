@@ -23,6 +23,7 @@ DJANGO_APPS = [
 LOCAL_APPS = [
     'apps.accounts',
     'apps.core',
+    'apps.comedor',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS

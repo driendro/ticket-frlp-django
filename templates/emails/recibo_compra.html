@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; }
+        .header { background-color: #4CAF50; color: white; padding: 15px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
+        th { background-color: #e0e0e0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>¡Tu Compra fue Exitosa!</h2>
+    </div>
+    <div style="padding: 20px;">
+        <p>Estimado/a <strong>{{ user_name }}</strong>:</p>
+        <p>Código de Recibo: <strong>{{ recibo_numero }}</strong></p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Turno</th>
+                    <th>Menú</th>
+                    <th>Precio</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for compra in compras %}
+                <tr>
+                    <td>{{ compra.dia_comprado }}</td>
+                    <td>{{ compra.get_turno_display }}</td>
+                    <td>{{ compra.get_menu_display }}</td>
+                    <td>${{ compra.precio }}</td>
+                </tr>
+                {% endfor %}
+                <tr>
+                    <td colspan="3"><strong>Total</strong></td>
+                    <td><strong>${{ total }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        <p style="margin-top: 20px;">Saludos,<br>El equipo de la SAU - UTN FRLP</p>
+    </div>
+</body>
+</html>

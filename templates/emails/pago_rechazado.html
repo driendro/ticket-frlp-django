@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; }
+        .header { background-color: #f44336; color: white; padding: 15px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>Tu Pago fue Rechazado</h2>
+    </div>
+    <div style="padding: 20px;">
+        <p>Estimado/a <strong>{{ user_name }}</strong>:</p>
+        <p>
+            El pago de tu compra <strong>#{{ external_reference }}</strong>
+            fue rechazado.
+        </p>
+        <p>Motivo: <strong>{{ status_detail }}</strong></p>
+        <p>
+            Por favor intentá nuevamente o contactanos en
+            <a href="mailto:comedor@frlp.utn.edu.ar">comedor@frlp.utn.edu.ar</a>
+        </p>
+        <p>Saludos,<br>El equipo de la SAU - UTN FRLP</p>
+    </div>
+</body>
+</html>

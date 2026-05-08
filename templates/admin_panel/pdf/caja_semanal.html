@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; }
+        h1, h2, h3 { text-align: center; margin: 5px 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; }
+        th { background-color: #366092; color: white; padding: 6px; text-align: center; }
+        td { border-bottom: 1px solid #ddd; padding: 5px; text-align: center; }
+        .total-row td { font-weight: bold; background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Cierre de Caja Semanal</h1>
+    <h2>Del {{ fecha1 }} al {{ fecha2 }}</h2>
+
+    <h3>Efectivo</h3>
+    <table>
+        <thead>
+            <tr><th>Fecha</th><th>Cantidad</th><th>Monto</th></tr>
+        </thead>
+        <tbody>
+            {% for dia in detalle %}
+            {% if dia.efectivo_cantidad %}
+            <tr>
+                <td>{{ dia.fecha|date:"d/m" }}</td>
+                <td>{{ dia.efectivo_cantidad }}</td>
+                <td>${{ dia.efectivo_total }}</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+            <tr class="total-row">
+                <td>Total</td><td></td><td>${{ total_efectivo }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Virtual</h3>
+    <table>
+        <thead>
+            <tr><th>Fecha</th><th>Cantidad</th><th>Monto</th></tr>
+        </thead>
+        <tbody>
+            {% for dia in detalle %}
+            {% if dia.virtual_cantidad %}
+            <tr>
+                <td>{{ dia.fecha|date:"d/m" }}</td>
+                <td>{{ dia.virtual_cantidad }}</td>
+                <td>${{ dia.virtual_total }}</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+            <tr class="total-row">
+                <td>Total</td><td></td><td>${{ total_virtual }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Mercado Pago</h3>
+    <table>
+        <thead>
+            <tr><th>Fecha</th><th>Cantidad</th><th>Monto</th></tr>
+        </thead>
+        <tbody>
+            {% for dia in detalle %}
+            {% if dia.mp_cantidad %}
+            <tr>
+                <td>{{ dia.fecha|date:"d/m" }}</td>
+                <td>{{ dia.mp_cantidad }}</td>
+                <td>${{ dia.mp_total }}</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+            <tr class="total-row">
+                <td>Total</td><td></td><td>${{ total_mp }}</td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>

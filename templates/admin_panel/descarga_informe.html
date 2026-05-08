@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Descargar Informes{% endblock %}
+{% block navbar %}{% include 'admin_panel/_navbar.html' %}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <h1 class="text-center mt-4">Descargar Informes</h1>
+        <div class="col-11 col-md-9 col-lg-7">
+
+            <div class="accordion accordion-flush" id="accordionInformes">
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#collapseOne">
+                            Caja del día
+                        </button>
+                    </h2>
+                    <div id="collapseOne" class="accordion-collapse collapse">
+                        <div class="accordion-body">
+                            <form action="{% url 'admin_panel:informe' %}" method="post">
+                                {% csrf_token %}
+                                <div class="input-group mb-3">
+                                    <input type="date" name="cierre_fecha"
+                                           class="form-control" required>
+                                    <button class="btn btn-success" type="submit">
+                                        Descargar
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#collapseTwo">
+                            Resumen de caja semanal
+                        </button>
+                    </h2>
+                    <div id="collapseTwo" class="accordion-collapse collapse">
+                        <div class="accordion-body">
+                            <form action="{% url 'admin_panel:informe_semana' %}" method="post">
+                                {% csrf_token %}
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <input type="date" name="cierre_fecha_1"
+                                               class="form-control" required>
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="date" name="cierre_fecha_2"
+                                               class="form-control" required>
+                                    </div>
+                                </div>
+                                <button class="btn btn-success" type="submit">
+                                    Descargar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#collapseThree">
+                            Resumen de pedidos semanales
+                        </button>
+                    </h2>
+                    <div id="collapseThree" class="accordion-collapse collapse">
+                        <div class="accordion-body">
+                            <form action="{% url 'admin_panel:informe_pedidos' %}" method="post">
+                                {% csrf_token %}
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <input type="date" name="semana_fecha_1"
+                                               class="form-control" required>
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="date" name="semana_fecha_2"
+                                               class="form-control" required>
+                                    </div>
+                                </div>
+                                <button class="btn btn-success" type="submit">
+                                    Descargar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

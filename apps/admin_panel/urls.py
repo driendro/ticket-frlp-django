@@ -29,4 +29,10 @@ urlpatterns = [
     path('menu/', views.MenuAdminView.as_view(), name='menu'),
     path('csv/', views.CargaCSVView.as_view(), name='carga_csv'),
     path('csv/confirmar/', views.ConfirmarCSVView.as_view(), name='confirmar_csv'),
+    path('excel/', views.DescargarExcelView.as_view(), name='excel'),
+    path('informe/', views.CierreCajaDiarioView.as_view(), name='informe'),
+    path('informe/semana/', views.CierreCajaSemanalView.as_view(),
+         name='informe_semana'),
+    path('informe/pedidos/', views.ResumenPedidosSemanaView.as_view(),
+         name='informe_pedidos'),
 ]

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; }
+        h1, h2 { text-align: center; margin: 5px 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { background-color: #366092; color: white; padding: 6px; text-align: center; }
+        td { border-bottom: 1px solid #ddd; padding: 5px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Detalle de Viandas</h1>
+    <h2>Del {{ fecha1 }} al {{ fecha2 }}</h2>
+    <p style="text-align:center;">UTN - Facultad Regional La Plata</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Básico</th>
+                <th>Veggie</th>
+                <th>Sin TACC</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dia in detalle %}
+            {% with total=dia.basico|add:dia.veggie|add:dia.celiaco %}
+            {% if total %}
+            <tr>
+                <td>{{ dia.fecha|date:"d/m/Y" }}</td>
+                <td>{{ dia.basico }}</td>
+                <td>{{ dia.veggie }}</td>
+                <td>{{ dia.celiaco }}</td>
+                <td><strong>{{ total }}</strong></td>
+            </tr>
+            {% endif %}
+            {% endwith %}
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

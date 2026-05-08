@@ -1,4 +1,8 @@
 # apps/admin_panel/views.py
+from datetime import datetime, date, timedelta
+from django.http import HttpResponse
+from openpyxl.styles import Font, PatternFill, Alignment
+import openpyxl
 import io
 import csv
 from apps.core.models import Configuracion, Feriado, Menu
@@ -703,3 +707,263 @@ class ConfirmarCSVView(AdministradorRequiredMixin, View):
             messages.success(request, 'Cargas realizadas correctamente.')
 
         return redirect('admin_panel:carga_csv')
+
+
+# apps/admin_panel/views.py - agregar al final
+
+
+class DescargarExcelView(CajeroRequiredMixin, View):
+    """
+    Equivale a descargarExcel() de Vendedor.php en CI3.
+    """
+
+    def get(self, request):
+        return render(request, 'admin_panel/descarga_planilla.html', {
+            'titulo': 'Descargar Listados',
+        })
+
+    def post(self, request):
+        fecha_str = request.POST.get('fecha')
+        try:
+            fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            messages.error(request, 'Fecha inválida.')
+            return redirect('admin_panel:excel')
+
+        compras = Compra.objects.filter(
+            dia_comprado=fecha
+        ).select_related('usuario').order_by('usuario__last_name')
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = 'Listado'
+
+        # Estilo header
+        header_fill = PatternFill(
+            start_color='366092',
+            end_color='366092',
+            fill_type='solid'
+        )
+        header_font = Font(color='FFFFFF', bold=True)
+
+        # Título
+        ws.merge_cells('A1:G1')
+        ws['A1'] = f'Listado de viandas - {fecha.strftime("%d/%m/%Y")}'
+        ws['A1'].font = Font(bold=True, size=14)
+        ws['A1'].alignment = Alignment(horizontal='center')
+
+        # Headers
+        headers = ['#', 'Documento', 'Apellido',
+                   'Nombre', 'Menú', 'Turno', 'Claustro']
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=2, column=col, value=header)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal='center')
+
+        # Datos
+        for i, compra in enumerate(compras, 1):
+            ws.append([
+                i,
+                compra.usuario.documento,
+                compra.usuario.last_name.upper(),
+                compra.usuario.first_name,
+                compra.get_menu_display(),
+                compra.get_turno_display(),
+                compra.usuario.tipo,
+            ])
+
+        # Ancho de columnas
+        for col in ws.columns:
+            max_length = max(len(str(cell.value or '')) for cell in col)
+            ws.column_dimensions[col[0].column_letter].width = max_length + 4
+
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="Listado_{fecha}.xlsx"'
+        wb.save(response)
+        return response
+
+
+class CierreCajaDiarioView(CajeroRequiredMixin, View):
+    """
+    Equivale a descargarCierreCajaDiario() de Vendedor.php en CI3.
+    """
+
+    def get(self, request):
+        return render(request, 'admin_panel/descarga_informe.html', {
+            'titulo': 'Informes',
+        })
+
+    def post(self, request):
+        from weasyprint import HTML
+        from django.template.loader import render_to_string
+
+        fecha_str = request.POST.get('cierre_fecha')
+        try:
+            fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            messages.error(request, 'Fecha inválida.')
+            return redirect('admin_panel:informe')
+
+        cargas = LogCarga.objects.filter(
+            fecha=fecha
+        ).select_related('usuario', 'vendedor', 'transaccion')
+
+        # Totales por formato
+        totales = {
+            'Efectivo': {'cantidad': 0, 'total': 0},
+            'Virtual': {'cantidad': 0, 'total': 0},
+            'MP': {'cantidad': 0, 'total': 0},
+        }
+
+        for carga in cargas:
+            formato = carga.formato
+            if formato in totales:
+                totales[formato]['cantidad'] += 1
+                totales[formato]['total'] += float(abs(carga.monto))
+
+        context = {
+            'cargas': cargas,
+            'totales': totales,
+            'vendedor': request.user,
+            'fecha': fecha.strftime('%d-%m-%Y'),
+        }
+
+        html_string = render_to_string(
+            'admin_panel/pdf/caja_diaria.html', context)
+        html = HTML(string=html_string)
+        pdf = html.write_pdf()
+
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="Cierre_{fecha}.pdf"'
+        response.write(pdf)
+        return response
+
+
+class CierreCajaSemanalView(CajeroRequiredMixin, View):
+    """
+    Equivale a descargarCierreCajaSemana() de Vendedor.php en CI3.
+    """
+
+    def post(self, request):
+        from weasyprint import HTML
+        from django.template.loader import render_to_string
+
+        fecha1_str = request.POST.get('cierre_fecha_1')
+        fecha2_str = request.POST.get('cierre_fecha_2')
+
+        try:
+            fecha1 = datetime.strptime(fecha1_str, '%Y-%m-%d').date()
+            fecha2 = datetime.strptime(fecha2_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            messages.error(request, 'Fechas inválidas.')
+            return redirect('admin_panel:informe')
+
+        cargas = LogCarga.objects.filter(
+            fecha__gte=fecha1,
+            fecha__lte=fecha2,
+        )
+
+        # Armar detalle por día
+        detalle = []
+        fecha_actual = fecha1
+        while fecha_actual <= fecha2:
+            cargas_dia = cargas.filter(fecha=fecha_actual)
+            dia = {
+                'fecha': fecha_actual,
+                'efectivo_cantidad': 0,
+                'efectivo_total': 0,
+                'virtual_cantidad': 0,
+                'virtual_total': 0,
+                'mp_cantidad': 0,
+                'mp_total': 0,
+            }
+            for carga in cargas_dia:
+                monto = float(abs(carga.monto))
+                if carga.formato == 'Efectivo':
+                    dia['efectivo_cantidad'] += 1
+                    dia['efectivo_total'] += monto
+                elif carga.formato == 'Virtual':
+                    dia['virtual_cantidad'] += 1
+                    dia['virtual_total'] += monto
+                elif carga.formato == 'MP':
+                    dia['mp_cantidad'] += 1
+                    dia['mp_total'] += monto
+            detalle.append(dia)
+            fecha_actual += timedelta(days=1)
+
+        context = {
+            'detalle': detalle,
+            'vendedor': request.user,
+            'fecha1': fecha1.strftime('%d-%m-%Y'),
+            'fecha2': fecha2.strftime('%d-%m-%Y'),
+            'total_efectivo': sum(d['efectivo_total'] for d in detalle),
+            'total_virtual': sum(d['virtual_total'] for d in detalle),
+            'total_mp': sum(d['mp_total'] for d in detalle),
+        }
+
+        html_string = render_to_string(
+            'admin_panel/pdf/caja_semanal.html', context)
+        html = HTML(string=html_string)
+        pdf = html.write_pdf()
+
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="Cierre_{fecha1}_{fecha2}.pdf"'
+        response.write(pdf)
+        return response
+
+
+class ResumenPedidosSemanaView(CajeroRequiredMixin, View):
+    """
+    Equivale a descargarResumenPedidosSemana() de Vendedor.php en CI3.
+    """
+
+    def post(self, request):
+        from weasyprint import HTML
+        from django.template.loader import render_to_string
+
+        fecha1_str = request.POST.get('semana_fecha_1')
+        fecha2_str = request.POST.get('semana_fecha_2')
+
+        try:
+            fecha1 = datetime.strptime(fecha1_str, '%Y-%m-%d').date()
+            fecha2 = datetime.strptime(fecha2_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            messages.error(request, 'Fechas inválidas.')
+            return redirect('admin_panel:informe')
+
+        compras = Compra.objects.filter(
+            dia_comprado__gte=fecha1,
+            dia_comprado__lte=fecha2,
+        )
+
+        detalle = []
+        fecha_actual = fecha1
+        while fecha_actual <= fecha2:
+            compras_dia = compras.filter(dia_comprado=fecha_actual)
+            dia = {
+                'fecha': fecha_actual,
+                'basico': compras_dia.filter(menu='Basico').count(),
+                'veggie': compras_dia.filter(menu='Veggie').count(),
+                'celiaco': compras_dia.filter(menu='Celiaco').count(),
+            }
+            detalle.append(dia)
+            fecha_actual += timedelta(days=1)
+
+        context = {
+            'detalle': detalle,
+            'fecha1': fecha1.strftime('%d-%m-%Y'),
+            'fecha2': fecha2.strftime('%d-%m-%Y'),
+        }
+
+        html_string = render_to_string(
+            'admin_panel/pdf/resumen_semanal.html', context)
+        html = HTML(string=html_string)
+        pdf = html.write_pdf()
+
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="Pedidos_{fecha1}_{fecha2}.pdf"'
+        response.write(pdf)
+        return response

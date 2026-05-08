@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}Descargar Listados{% endblock %}
+{% block navbar %}{% include 'admin_panel/_navbar.html' %}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <h1 class="text-center mt-4">Descargar Listados</h1>
+        <div class="col-10 col-md-7 col-lg-4 my-3">
+            {% for i in "12345" %}
+            {% with dias_adelante=forloop.counter %}
+            <form action="{% url 'admin_panel:excel' %}" method="post" class="mb-3">
+                {% csrf_token %}
+                <div class="input-group">
+                    <input type="date" name="fecha" class="form-control" required>
+                    <button class="btn btn-success" type="submit">
+                        Descargar
+                    </button>
+                </div>
+            </form>
+            {% endwith %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

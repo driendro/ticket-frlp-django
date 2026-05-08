@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; }
+        h1, h2 { text-align: center; margin: 5px 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background-color: #366092; color: white; padding: 6px; }
+        td { border-bottom: 1px solid #ddd; padding: 5px; }
+        .totales { margin-top: 15px; }
+        .totales p { margin: 3px 0; }
+    </style>
+</head>
+<body>
+    <h1>Cierre de Caja</h1>
+    <h2>{{ fecha }}</h2>
+    <p style="text-align:center;">Vendedor: <strong>{{ vendedor.get_full_name }}</strong></p>
+
+    <div class="totales">
+        <p>Efectivo: <strong>{{ totales.Efectivo.cantidad }}</strong> cargas -
+           Total: <strong>${{ totales.Efectivo.total }}</strong></p>
+        <p>Virtual: <strong>{{ totales.Virtual.cantidad }}</strong> cargas -
+           Total: <strong>${{ totales.Virtual.total }}</strong></p>
+        <p>Mercado Pago: <strong>{{ totales.MP.cantidad }}</strong> cargas -
+           Total: <strong>${{ totales.MP.total }}</strong></p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Hora</th>
+                <th>Documento</th>
+                <th>Nombre</th>
+                <th>Apellido</th>
+                <th>Monto</th>
+                <th>Forma</th>
+                <th>Vendedor</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for carga in cargas %}
+            <tr>
+                <td>{{ carga.hora|time:"H:i" }}</td>
+                <td>{{ carga.usuario.documento }}</td>
+                <td>{{ carga.usuario.first_name }}</td>
+                <td>{{ carga.usuario.last_name }}</td>
+                <td>${{ carga.monto }}</td>
+                <td>{{ carga.formato }}</td>
+                <td>{{ carga.vendedor.get_full_name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

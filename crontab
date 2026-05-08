@@ -10,3 +10,13 @@
 
 # Limpiar passrecovery cada hora
 0 * * * * /path/to/venv/bin/python /path/to/manage.py limpiar_passrecovery
+
+
+Documento | Tipo          | Password | Acceso
+11111111  | Estudiante    | test1234 | /usuario/
+22222222  | Becado        | test1234 | /usuario/
+33333333  | Docente       | test1234 | /usuario/
+44444444  | No Docente    | test1234 | /usuario/
+55555555  | Cajero        | test1234 | /panel/
+66666666  | Administrador | test1234 | /panel/
+77777777  | Repartidor    | test1234 | /panel/

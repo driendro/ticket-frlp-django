@@ -41,7 +41,7 @@ class IndexView(LoginRequiredMixin, View):
             'titulo': 'Comprar Viandas',
             'usuario': usuario,
             'semanas': semanas,
-            'costo_vianda': costo_vianda,
+            'costo_vianda': float(costo_vianda),
             'permitir_ambos_turnos': config.permitir_ambos_turnos if config else False,
         }
         return render(request, self.template_name, context)

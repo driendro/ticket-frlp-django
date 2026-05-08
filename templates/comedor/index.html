@@ -66,8 +66,8 @@
                     </div>
 
                     <!-- Inputs ocultos para JS -->
-                    <input type="number" id="saldoCuenta" value="{{ usuario.saldo }}" hidden>
-                    <input type="number" id="costoVianda" value="{{ costo_vianda }}" hidden>
+                    <input type="number" id="saldoCuenta" value="{{ usuario.saldo|stringformat:'f' }}" hidden>
+                    <input type="number" id="costoVianda" value="{{ costo_vianda|stringformat:'f' }}" hidden>
 
                     <form method="post" action="{% url 'comedor:index' %}" id="formCompra" autocomplete="off">
                         {% csrf_token %}

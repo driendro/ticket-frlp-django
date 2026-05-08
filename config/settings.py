@@ -25,6 +25,7 @@ LOCAL_APPS = [
     'apps.core',
     'apps.comedor',
     'apps.pagos',
+    'apps.admin_panel',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS

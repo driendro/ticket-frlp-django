@@ -23,4 +23,5 @@ urlpatterns = [
     path('', include('apps.accounts.urls', namespace='accounts')),
     path('usuario/', include('apps.comedor.urls', namespace='comedor')),
     path('pagos/', include('apps.pagos.urls', namespace='pagos')),
+    path('panel/', include('apps.admin_panel.urls', namespace='admin_panel')),
 ]

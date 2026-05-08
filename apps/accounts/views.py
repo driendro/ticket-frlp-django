@@ -1,4 +1,5 @@
 # apps/accounts/views.py
+from django.contrib.auth import update_session_auth_hash
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
@@ -47,3 +48,49 @@ class LogoutView(View):
     def get(self, request):
         logout(request)
         return redirect('accounts:login')
+
+
+# apps/accounts/views.py - agregar al final
+
+
+class CambiarPasswordView(LoginRequiredMixin, View):
+
+    template_name = 'accounts/cambiar_password.html'
+
+    def get(self, request):
+        return render(request, self.template_name, {
+            'titulo': 'Cambiar Contraseña'
+        })
+
+    def post(self, request):
+        password_anterior = request.POST.get('password_anterior')
+        password_nuevo = request.POST.get('password_nuevo')
+        password_confirmado = request.POST.get('password_confirmado')
+
+        if not request.user.check_password(password_anterior):
+            messages.error(request, 'La contraseña actual es incorrecta.')
+            return render(request, self.template_name, {
+                'titulo': 'Cambiar Contraseña'
+            })
+
+        if password_nuevo != password_confirmado:
+            messages.error(request, 'Las contraseñas nuevas no coinciden.')
+            return render(request, self.template_name, {
+                'titulo': 'Cambiar Contraseña'
+            })
+
+        if len(password_nuevo) < 6:
+            messages.error(
+                request, 'La contraseña debe tener al menos 6 caracteres.')
+            return render(request, self.template_name, {
+                'titulo': 'Cambiar Contraseña'
+            })
+
+        request.user.set_password(password_nuevo)
+        request.user.save()
+
+        # Mantener sesión activa después del cambio
+        update_session_auth_hash(request, request.user)
+
+        messages.success(request, 'Contraseña actualizada correctamente.')
+        return redirect('accounts:cambiar_password')

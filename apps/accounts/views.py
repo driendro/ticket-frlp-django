@@ -1,7 +1,7 @@
 # apps/accounts/views.py
-from django.contrib.auth import update_session_auth_hash
 from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.views import View
 
@@ -48,9 +48,6 @@ class LogoutView(View):
     def get(self, request):
         logout(request)
         return redirect('accounts:login')
-
-
-# apps/accounts/views.py - agregar al final
 
 
 class CambiarPasswordView(LoginRequiredMixin, View):

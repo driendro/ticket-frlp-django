@@ -65,7 +65,7 @@ def es_fecha_vianda_ordenable(fecha_vianda: date) -> bool:
     # Combinar fecha y hora de corte
     fecha_hora_corte = datetime.combine(dia_corte, config.hora_final)
 
-    return ahora <= fecha_hora_corte
+    return ahora < fecha_hora_corte
 
 
 def paso_corte_proxima_semana() -> bool:

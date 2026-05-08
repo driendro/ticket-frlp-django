@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}Nuevo Usuario{% endblock %}
+{% block navbar %}{% include 'admin_panel/_navbar.html' %}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-10 my-3">
+            <h1>Crear nuevo usuario</h1>
+            <form method="post">
+                {% csrf_token %}
+                <div class="row mb-2">
+                    <label class="col-sm-2 col-form-label">Saldo inicial:</label>
+                    <div class="col-sm-3">
+                        <input type="number" class="form-control" name="saldo" value="0">
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <label class="col-sm-2 col-form-label">Legajo:</label>
+                    <div class="col-sm-3">
+                        <input type="number" class="form-control" name="legajo" required>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <label class="col-sm-2 col-form-label">DNI:</label>
+                    <div class="col-sm-3">
+                        <input type="number" class="form-control" name="dni" required>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <label class="col-sm-2 col-form-label">Nombre:</label>
+                    <div class="col-sm-3">
+                        <input type="text" class="form-control" name="nombre" required>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <label class="col-sm-2 col-form-label">Apellido:</label>
+                    <div class="col-sm-3">
+                        <input type="text" class="form-control" name="apellido" required>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <label class="col-sm-2 col-form-label">E-Mail:</label>
+                    <div class="col-sm-3">
+                        <input type="email" class="form-control" name="email" required>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <label class="col-sm-2 col-form-label">Claustro:</label>
+                    <div class="col-sm-3">
+                        <select class="form-select" name="claustro" id="claustroSelect" required>
+                            <option value="">Seleccione</option>
+                            <option value="Estudiante">Estudiante</option>
+                            <option value="Docente">Docente</option>
+                            <option value="No Docente">No Docente</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row mb-2" id="especialidadRow" style="display:none;">
+                    <label class="col-sm-2 col-form-label">Especialidad:</label>
+                    <div class="col-sm-3">
+                        <select class="form-select" name="especialidad">
+                            <option value="">Seleccione</option>
+                            <option value="Civil">Civil</option>
+                            <option value="Electrica">Eléctrica</option>
+                            <option value="Industrial">Industrial</option>
+                            <option value="Mecanica">Mecánica</option>
+                            <option value="Quimica">Química</option>
+                            <option value="Sistemas">Sistemas</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <label class="col-sm-2 col-form-label">Tiene beca:</label>
+                    <div class="col-sm-3">
+                        <select class="form-select" name="beca">
+                            <option value="No">No</option>
+                            <option value="Si">Si</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-person-plus me-1"></i>Crear usuario
+                    </button>
+                    <a href="{% url 'admin_panel:index' %}" class="btn btn-secondary ms-2">
+                        Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('claustroSelect').addEventListener('change', function() {
+    const row = document.getElementById('especialidadRow');
+    row.style.display = this.value === 'Estudiante' ? 'flex' : 'none';
+});
+</script>
+{% endblock %}

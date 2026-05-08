@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Historial de Cargas{% endblock %}
+{% block navbar %}{% include 'admin_panel/_navbar.html' %}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col mt-5">
+            <h2 class="text-center"># Historial de Cargas</h2>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="table-responsive">
+                <table class="table table-sm text-center">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Nombre</th>
+                            <th>Apellido</th>
+                            <th>Monto</th>
+                            <th>Método</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for carga in cargas %}
+                        <tr>
+                            <td>{{ carga.fecha|date:"d/m/Y" }}</td>
+                            <td>{{ carga.hora|time:"H:i" }}</td>
+                            <td>{{ carga.usuario.first_name }}</td>
+                            <td>{{ carga.usuario.last_name }}</td>
+                            <td>${{ carga.monto }}</td>
+                            <td>{{ carga.formato }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-muted">No hay cargas registradas.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

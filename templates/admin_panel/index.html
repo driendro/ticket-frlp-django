@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}Panel Admin - UTN FRLP{% endblock %}
+{% block navbar %}{% include 'admin_panel/_navbar.html' %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+    <div class="row form-center">
+        <div class="col-12 text-center mb-3">
+            <h2>Ingrese un Documento a buscar</h2>
+        </div>
+
+        <div class="col-12 d-flex justify-content-center my-3">
+            <form method="post" class="d-flex gap-2 w-100" style="max-width: 450px;">
+                {% csrf_token %}
+                <input type="number" class="form-control"
+                       placeholder="Ingrese DNI" name="numeroDni" required>
+                <button type="submit" class="btn btn-success flex-shrink-0">
+                    <i class="bi bi-search me-1"></i>Buscar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    {% if usuario %}
+    <hr>
+    <div class="row justify-content-center mt-4">
+        <div class="col-11 col-md-8 col-lg-6">
+            <h2 class="mb-4">
+                {{ usuario.tipo }}:
+                <span class="text-primary">{{ usuario.nombre_completo }}</span>
+            </h2>
+
+            <form action="{% url 'admin_panel:cargar_saldo' %}" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="dni" value="{{ usuario.documento }}">
+
+                <div class="row mb-3 align-items-center">
+                    <label class="col-4 col-form-label">Saldo Actual:</label>
+                    <div class="col-8">
+                        <input type="text" readonly class="form-control-plaintext fw-bold"
+                               value="${{ usuario.saldo }}">
+                    </div>
+                </div>
+
+                <div class="row mb-3 align-items-center">
+                    <label class="col-4 col-form-label">Carga:</label>
+                    <div class="col-8">
+                        <div class="d-flex gap-2">
+                            <input type="number" class="form-control"
+                                   name="carga" placeholder="Monto"
+                                   min="1" step="0.01" required>
+                            <select name="metodo_carga" class="form-select" style="width: 140px;">
+                                <option value="">Método</option>
+                                <option value="Efectivo">Efectivo</option>
+                                <option value="Virtual">Virtual</option>
+                                {% if request.user.groups.all.0.name == 'administrador' or request.user.is_superuser %}
+                                <option value="reintegro">Reintegro</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-2 align-items-center">
+                    <label class="col-4 col-form-label">Legajo:</label>
+                    <div class="col-8">
+                        <input type="text" readonly class="form-control-plaintext"
+                               value="{{ usuario.legajo }}">
+                    </div>
+                </div>
+
+                <div class="row mb-2 align-items-center">
+                    <label class="col-4 col-form-label">DNI:</label>
+                    <div class="col-8">
+                        <input type="text" readonly class="form-control-plaintext"
+                               value="{{ usuario.documento }}">
+                    </div>
+                </div>
+
+                <div class="row mb-2 align-items-center">
+                    <label class="col-4 col-form-label">E-Mail:</label>
+                    <div class="col-8">
+                        <input type="text" readonly class="form-control-plaintext"
+                               value="{{ usuario.email }}">
+                    </div>
+                </div>
+
+                <hr class="mt-4 mb-3">
+
+                <div class="d-flex flex-wrap gap-2 justify-content-center">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-plus-circle me-1"></i>Cargar Saldo
+                    </button>
+                    <a class="btn btn-primary"
+                       href="{% url 'admin_panel:modificar_usuario' usuario.pk %}">
+                        <i class="bi bi-pencil-square me-1"></i>Modificar
+                    </a>
+                    {% if request.user.groups.all.0.name == 'administrador' or request.user.is_superuser %}
+                    <a class="btn btn-info"
+                       href="{% url 'admin_panel:ver_compras' usuario.pk %}">
+                        <i class="bi bi-cart-check me-1"></i>Ver Compras
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

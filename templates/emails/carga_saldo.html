@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"></head>
+<body style="font-family: Arial, sans-serif;">
+    <h2>Carga de Saldo #{{ transaccion }}</h2>
+    <table>
+        <tr><td><strong>Usuario:</strong></td><td>{{ usuario.nombre_completo }}</td></tr>
+        <tr><td><strong>Documento:</strong></td><td>{{ usuario.documento }}</td></tr>
+        <tr><td><strong>Monto cargado:</strong></td><td>${{ monto }}</td></tr>
+        <tr><td><strong>Saldo actual:</strong></td><td>${{ saldo }}</td></tr>
+        <tr><td><strong>Método:</strong></td><td>{{ metodo }}</td></tr>
+    </table>
+    <p>Saludos,<br>El equipo de la SAU - UTN FRLP</p>
+</body>
+</html>

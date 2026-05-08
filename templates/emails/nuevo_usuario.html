@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"></head>
+<body style="font-family: Arial, sans-serif;">
+    <h2>Bienvenido al Comedor UTN FRLP</h2>
+    <p>Hola <strong>{{ usuario.nombre_completo }}</strong>,</p>
+    <p>Tu cuenta fue creada con el documento <strong>{{ usuario.documento }}</strong>.</p>
+    <p>Tus credenciales de acceso son:</p>
+    <ul>
+        <li>Usuario: <strong>{{ usuario.documento }}</strong></li>
+        <li>Contraseña: <strong>{{ password }}</strong></li>
+    </ul>
+    <p>Por favor cambiá tu contraseña al ingresar por primera vez.</p>
+    <p>Saludos,<br>El equipo de la SAU - UTN FRLP</p>
+</body>
+</html>

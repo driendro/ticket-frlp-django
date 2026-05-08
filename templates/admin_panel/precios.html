@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Precios{% endblock %}
+{% block navbar %}{% include 'admin_panel/_navbar.html' %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="col-sm-5 col-md-5 col-lg-5 mx-auto">
+        <h1 class="mb-4">Precios de las viandas</h1>
+        <form method="post">
+            {% csrf_token %}
+            {% for precio in precios %}
+            <div class="form-group row mb-2">
+                <label class="col-sm-6 col-form-label">{{ precio.tipo_user }}:</label>
+                <div class="col-sm-6">
+                    <input type="number" name="precio_{{ precio.id }}"
+                           class="form-control" step="0.01"
+                           value="{{ precio.costo }}" required>
+                </div>
+            </div>
+            {% endfor %}
+            <div class="form-group row mb-2">
+                <div class="col-sm-12 text-center">
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

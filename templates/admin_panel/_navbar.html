@@ -39,15 +39,28 @@
                         {% if request.user.groups.all.0.name == 'administrador' or request.user.is_superuser %}
                         <li><hr class="dropdown-divider border-secondary"></li>
                         <li>
-                            <a class="dropdown-item text-white"
-                               href="{% url 'admin_panel:configuracion' %}">
+                            <a class="dropdown-item text-white" href="{% url 'admin_panel:configuracion' %}">
                                 <i class="bi bi-gear me-1"></i> Configuración
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item text-white"
-                               href="{% url 'admin_panel:feriados' %}">
+                            <a class="dropdown-item text-white" href="{% url 'admin_panel:precios' %}">
+                                <i class="bi bi-currency-dollar me-1"></i> Precios
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item text-white" href="{% url 'admin_panel:feriados' %}">
                                 <i class="bi bi-calendar-x me-1"></i> Feriados
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item text-white" href="{% url 'admin_panel:menu' %}">
+                                <i class="bi bi-journal-text me-1"></i> Menú
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item text-white" href="{% url 'admin_panel:carga_csv' %}">
+                                <i class="bi bi-filetype-csv me-1"></i> Carga CSV
                             </a>
                         </li>
                         {% endif %}

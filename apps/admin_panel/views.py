@@ -1,4 +1,7 @@
 # apps/admin_panel/views.py
+import io
+import csv
+from apps.core.models import Configuracion, Feriado, Menu
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.views import View
@@ -248,13 +251,15 @@ class ModificarUsuarioView(CajeroRequiredMixin, View):
     """
     template_name = 'admin_panel/modificar_usuario.html'
 
+
     def get(self, request, pk):
         usuario = get_object_or_404(CustomUser, pk=pk)
         return render(request, self.template_name, {
             'titulo': f'Modificar {usuario.nombre_completo}',
             'usuario': usuario,
+            'especialidad_choices': CustomUser.ESPECIALIDAD_CHOICES,
         })
-
+    
     def post(self, request, pk):
         usuario = get_object_or_404(CustomUser, pk=pk)
 
@@ -402,3 +407,299 @@ class EntregarViandaView(RepartidorRequiredMixin, View):
 
         messages.success(request, 'Vianda entregada correctamente.')
         return redirect('admin_panel:repartidor')
+
+
+# apps/admin_panel/views.py - agregar al final del archivo existente
+
+
+class ConfiguracionView(AdministradorRequiredMixin, View):
+    """
+    Equivale a configuracion_general() de Administrador.php en CI3.
+    """
+    template_name = 'admin_panel/configuracion.html'
+
+
+    def get(self, request):
+        config = Configuracion.get()
+        dias_semana = {
+            1: 'Lunes', 2: 'Martes', 3: 'Miércoles',
+            4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 7: 'Domingo'
+        }
+        return render(request, self.template_name, {
+            'titulo': 'Configuración General',
+            'config': config,
+            'dias_semana': dias_semana,
+        })
+
+    def post(self, request):
+        config = Configuracion.get()
+
+        if not config:
+            config = Configuracion()
+
+        config.apertura = request.POST.get('apertura_comedor')
+        config.cierre = request.POST.get('cierre_comedor')
+        config.vacaciones_inicio = request.POST.get('inicio_receso')
+        config.vacaciones_fin = request.POST.get('fin_receso')
+        config.dia_inicial = int(request.POST.get('inicio_venta_semana'))
+        config.dia_final = int(request.POST.get('fin_venta_semana'))
+        config.hora_final = request.POST.get('hora_cierre_venta')
+        config.permitir_ambos_turnos = request.POST.get(
+            'permitir_ambos_turnos') == 'on'
+        config.save()
+
+        messages.success(request, 'Configuración guardada correctamente.')
+        return redirect('admin_panel:configuracion')
+
+
+class PreciosView(AdministradorRequiredMixin, View):
+    """
+    Equivale a configuracion_costos() de Administrador.php en CI3.
+    """
+    template_name = 'admin_panel/precios.html'
+
+    def get(self, request):
+        precios = Precio.objects.all()
+        return render(request, self.template_name, {
+            'titulo': 'Configuración de Precios',
+            'precios': precios,
+        })
+
+    def post(self, request):
+        precios = Precio.objects.all()
+        for precio in precios:
+            costo = request.POST.get(f'precio_{precio.id}')
+            if costo:
+                precio.costo = float(costo)
+                precio.save(update_fields=['costo'])
+
+        messages.success(request, 'Precios actualizados correctamente.')
+        return redirect('admin_panel:precios')
+
+
+class FeriadosView(AdministradorRequiredMixin, View):
+    """
+    Equivale a feriados_list() de Administrador.php en CI3.
+    """
+    template_name = 'admin_panel/feriados.html'
+
+    def get(self, request):
+        from datetime import date
+        año = int(request.GET.get('año', date.today().year))
+        feriados = Feriado.objects.filter(
+            fecha__year=año
+        ).order_by('fecha')
+
+        return render(request, self.template_name, {
+            'titulo': 'Feriados',
+            'feriados': feriados,
+            'año': año,
+        })
+
+
+class AgregarFeriadoView(AdministradorRequiredMixin, View):
+    """
+    Equivale a add_feriado() de Administrador.php en CI3.
+    """
+
+    def post(self, request):
+        fecha = request.POST.get('fecha_feriado')
+        detalle = request.POST.get('fecha_feriado_motivo')
+        año = request.POST.get('ano')
+
+        if fecha and detalle:
+            feriado, creado = Feriado.objects.get_or_create(
+                fecha=fecha,
+                defaults={'detalle': detalle}
+            )
+            if creado:
+                # Devolver compras de ese día
+                self._devolver_compras_fecha(fecha, detalle)
+                messages.success(request, f'Feriado {fecha} agregado.')
+            else:
+                messages.warning(
+                    request, 'Ya existe un feriado para esa fecha.')
+
+        return redirect(f"{request.build_absolute_uri('?')}año={año}" if año
+                        else 'admin_panel:feriados')
+
+    def _devolver_compras_fecha(self, fecha, motivo):
+        """Devuelve todas las compras de una fecha dada."""
+        compras = Compra.objects.filter(dia_comprado=fecha)
+
+        for compra in compras:
+            usuario = compra.usuario
+            nuevo_saldo = float(usuario.saldo) + float(compra.precio)
+
+            transaccion = Transaccion.objects.create(
+                usuario=usuario,
+                transaccion='Reintegro',
+                monto=compra.precio,
+                saldo=nuevo_saldo,
+            )
+
+            from apps.comedor.models import LogCompra
+            LogCompra.objects.create(
+                usuario=usuario,
+                dia_comprado=compra.dia_comprado,
+                precio=compra.precio,
+                turno=compra.turno,
+                menu=compra.menu,
+                transaccion_tipo='Reintegro',
+                transaccion=transaccion,
+            )
+
+            usuario.saldo = nuevo_saldo
+            usuario.save(update_fields=['saldo'])
+            compra.delete()
+
+            # Email reintegro
+            try:
+                from django.core.mail import send_mail
+                from django.template.loader import render_to_string
+                from django.conf import settings
+
+                context = {
+                    'usuario': usuario,
+                    'compra': compra,
+                    'motivo': motivo,
+                    'saldo': nuevo_saldo,
+                }
+                mensaje = render_to_string('emails/reintegro.html', context)
+                send_mail(
+                    subject=f'Reintegro por {motivo}',
+                    message='',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[usuario.email],
+                    html_message=mensaje,
+                    fail_silently=True,
+                )
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(
+                    f"Error email reintegro: {e}")
+
+
+class EliminarFeriadoView(AdministradorRequiredMixin, View):
+    """
+    Equivale a borrar_feriado() de Administrador.php en CI3.
+    """
+
+    def get(self, request, pk):
+        feriado = get_object_or_404(Feriado, pk=pk)
+        año = feriado.fecha.year
+        feriado.delete()
+        messages.success(request, 'Feriado eliminado.')
+        return redirect(f"{request.build_absolute_uri('/panel/feriados/')}?año={año}")
+
+
+class MenuAdminView(AdministradorRequiredMixin, View):
+    """
+    Equivale a updateMenu() de Vendedor.php en CI3.
+    """
+    template_name = 'admin_panel/menu.html'
+
+    def get(self, request):
+        menu = Menu.objects.all().order_by('dia')
+        return render(request, self.template_name, {
+            'titulo': 'Actualizar Menú',
+            'menu': menu,
+        })
+
+    def post(self, request):
+        menu = Menu.objects.all().order_by('dia')
+        for item in menu:
+            item.menu_basico = request.POST.get(f'basico_{item.id}', '')
+            item.menu_veggie = request.POST.get(f'veggie_{item.id}', '')
+            item.menu_sin_tacc = request.POST.get(f'sin_tacc_{item.id}', '')
+            item.save()
+
+        messages.success(request, 'Menú actualizado correctamente.')
+        return redirect('admin_panel:menu')
+
+
+class CargaCSVView(AdministradorRequiredMixin, View):
+    """
+    Equivale a cargar_archivo_csv() de Administrador.php en CI3.
+    """
+    template_name = 'admin_panel/carga_csv.html'
+
+    def get(self, request):
+        return render(request, self.template_name, {
+            'titulo': 'Carga CSV',
+        })
+
+    def post(self, request):
+        archivo = request.FILES.get('archivo_csv')
+        separador = request.POST.get('separador', ';')
+
+        if not archivo:
+            messages.error(request, 'Seleccioná un archivo CSV.')
+            return redirect('admin_panel:carga_csv')
+
+        try:
+            contenido = archivo.read().decode('utf-8')
+            reader = csv.reader(io.StringIO(contenido), delimiter=separador)
+            next(reader)  # saltar header
+            cargas = list(reader)
+        except Exception as e:
+            messages.error(request, f'Error al leer el archivo: {e}')
+            return redirect('admin_panel:carga_csv')
+
+        return render(request, self.template_name, {
+            'titulo': 'Carga CSV',
+            'cargas': cargas,
+            'separador': separador,
+        })
+
+
+class ConfirmarCSVView(AdministradorRequiredMixin, View):
+    """
+    Equivale a confirmarCargasCVS() de Administrador.php en CI3.
+    """
+
+    def post(self, request):
+        errores = []
+        i = 0
+
+        while request.POST.get(f'documento_{i}'):
+            documento = request.POST.get(f'documento_{i}')
+            monto = float(request.POST.get(f'monto_{i}', 0))
+            tipo = request.POST.get(f'tipo_{i}', 'Efectivo')
+
+            try:
+                usuario = CustomUser.objects.get(documento=int(documento))
+                nuevo_saldo = float(usuario.saldo) + monto
+                tipo_trans = 'Carga de Saldo' if monto >= 0 else 'Devolucion de Saldo'
+
+                with transaction.atomic():
+                    transaccion = Transaccion.objects.create(
+                        usuario=usuario,
+                        transaccion=tipo_trans,
+                        monto=monto,
+                        saldo=nuevo_saldo,
+                    )
+                    LogCarga.objects.create(
+                        usuario=usuario,
+                        vendedor=request.user,
+                        monto=monto,
+                        formato=tipo,
+                        transaccion=transaccion,
+                    )
+                    usuario.saldo = nuevo_saldo
+                    usuario.save(update_fields=['saldo'])
+
+            except CustomUser.DoesNotExist:
+                errores.append(documento)
+
+            i += 1
+
+        if errores:
+            messages.warning(
+                request,
+                f'No se encontraron los documentos: {", ".join(errores)}'
+            )
+        else:
+            messages.success(request, 'Cargas realizadas correctamente.')
+
+        return redirect('admin_panel:carga_csv')

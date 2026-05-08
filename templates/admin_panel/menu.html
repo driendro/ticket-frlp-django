@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}Menú{% endblock %}
+{% block navbar %}{% include 'admin_panel/_navbar.html' %}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col mt-5">
+            <h1 class="text-center"># Menú</h1>
+        </div>
+    </div>
+    <div class="row d-flex justify-content-center">
+        <div class="col-10">
+            <form method="post">
+                {% csrf_token %}
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Día</th>
+                            <th>Menú Básico</th>
+                            <th>Opción Veggie</th>
+                            <th>Sin TACC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in menu %}
+                        <tr>
+                            <td>{{ item.get_dia_display }}</td>
+                            <td>
+                                <input name="basico_{{ item.id }}" type="text"
+                                       class="form-control form-control-sm"
+                                       value="{{ item.menu_basico }}">
+                            </td>
+                            <td>
+                                <input name="veggie_{{ item.id }}" type="text"
+                                       class="form-control form-control-sm"
+                                       value="{{ item.menu_veggie }}">
+                            </td>
+                            <td>
+                                <input name="sin_tacc_{{ item.id }}" type="text"
+                                       class="form-control form-control-sm"
+                                       value="{{ item.menu_sin_tacc }}">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div class="text-center mb-4">
+                    <button class="btn btn-success px-5" type="submit">
+                        Actualizar Menú
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

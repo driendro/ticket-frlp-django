@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"></head>
+<body style="font-family: Arial, sans-serif;">
+    <h2>Reintegro por {{ motivo }}</h2>
+    <p>Estimado/a <strong>{{ usuario.nombre_completo }}</strong>:</p>
+    <p>
+        Se realizó un reintegro por la vianda del
+        <strong>{{ compra.dia_comprado|date:"d/m/Y" }}</strong>.
+    </p>
+    <ul>
+        <li>Devolución: <strong>${{ compra.precio }}</strong></li>
+        <li>Nuevo saldo: <strong>${{ saldo }}</strong></li>
+    </ul>
+    <p>Saludos,<br>El equipo de la SAU - UTN FRLP</p>
+</body>
+</html>

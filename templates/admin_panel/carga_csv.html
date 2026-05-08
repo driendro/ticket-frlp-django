@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}Carga CSV{% endblock %}
+{% block navbar %}{% include 'admin_panel/_navbar.html' %}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col my-4">
+            <h1>Cargar CSV</h1>
+        </div>
+    </div>
+
+    <p class="text-center">
+        El CSV debe tener el formato:
+        <strong>fecha;documento;apellido;nombre;monto;tipo</strong>
+    </p>
+
+    <form action="{% url 'admin_panel:carga_csv' %}" method="post"
+          enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="row d-flex justify-content-center gap-3 mb-3">
+            <div class="col-12 col-md-6">
+                <input class="form-control" type="file"
+                       name="archivo_csv" accept=".csv" required>
+            </div>
+            <div class="col-auto">
+                <select class="form-select" name="separador">
+                    <option value=";">;</option>
+                    <option value=",">,</option>
+                </select>
+            </div>
+        </div>
+        <div class="text-center">
+            <button type="submit" class="btn btn-primary">Ver Cargas</button>
+        </div>
+    </form>
+
+    {% if cargas %}
+    <div class="row mt-4">
+        <div class="col">
+            <form action="{% url 'admin_panel:confirmar_csv' %}" method="post">
+                {% csrf_token %}
+                <div class="table-responsive" style="max-height: 500px; overflow-y: scroll;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Fecha</th>
+                                <th>Documento</th>
+                                <th>Apellido</th>
+                                <th>Nombre</th>
+                                <th>Monto</th>
+                                <th>Tipo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for carga in cargas %}
+                            {% if carga %}
+                            <tr>
+                                <th>{{ forloop.counter }}</th>
+                                <td>
+                                    <input type="hidden"
+                                           name="fecha_{{ forloop.counter0 }}"
+                                           value="{{ carga.0 }}">
+                                    {{ carga.0 }}
+                                </td>
+                                <td>
+                                    <input type="hidden"
+                                           name="documento_{{ forloop.counter0 }}"
+                                           value="{{ carga.1 }}">
+                                    {{ carga.1 }}
+                                </td>
+                                <td>
+                                    <input type="hidden"
+                                           name="apellido_{{ forloop.counter0 }}"
+                                           value="{{ carga.2 }}">
+                                    {{ carga.2 }}
+                                </td>
+                                <td>
+                                    <input type="hidden"
+                                           name="nombre_{{ forloop.counter0 }}"
+                                           value="{{ carga.3 }}">
+                                    {{ carga.3 }}
+                                </td>
+                                <td>
+                                    <input type="hidden"
+                                           name="monto_{{ forloop.counter0 }}"
+                                           value="{{ carga.4 }}">
+                                    {{ carga.4 }}
+                                </td>
+                                <td>
+                                    <input type="hidden"
+                                           name="tipo_{{ forloop.counter0 }}"
+                                           value="{{ carga.5 }}">
+                                    {{ carga.5 }}
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-center mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        Confirmar Cargas
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

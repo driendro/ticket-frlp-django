@@ -17,4 +17,16 @@ urlpatterns = [
          views.DevolverCompraAdminView.as_view(), name='devolver_compra'),
     path('repartidor/', views.RepartidorView.as_view(), name='repartidor'),
     path('repartidor/entregar/', views.EntregarViandaView.as_view(), name='entregar'),
+
+    # Administrador
+    path('configuracion/', views.ConfiguracionView.as_view(), name='configuracion'),
+    path('precios/', views.PreciosView.as_view(), name='precios'),
+    path('feriados/', views.FeriadosView.as_view(), name='feriados'),
+    path('feriados/agregar/', views.AgregarFeriadoView.as_view(),
+         name='agregar_feriado'),
+    path('feriados/eliminar/<int:pk>/',
+         views.EliminarFeriadoView.as_view(), name='eliminar_feriado'),
+    path('menu/', views.MenuAdminView.as_view(), name='menu'),
+    path('csv/', views.CargaCSVView.as_view(), name='carga_csv'),
+    path('csv/confirmar/', views.ConfirmarCSVView.as_view(), name='confirmar_csv'),
 ]

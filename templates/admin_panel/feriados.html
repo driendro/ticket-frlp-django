@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Feriados {{ año }}{% endblock %}
+{% block navbar %}{% include 'admin_panel/_navbar.html' %}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mt-2 d-flex justify-content-center">
+        <div class="col-6 text-center">
+            <h2>Calendario del Comedor</h2>
+        </div>
+    </div>
+
+    <div class="row mt-2 mb-3 justify-content-center">
+        <div class="col-auto d-flex gap-2">
+            <a class="btn btn-primary"
+               href="?año={{ año|add:'-1' }}">Año Anterior</a>
+            <span class="btn btn-secondary disabled">{{ año }}</span>
+            <a class="btn btn-primary"
+               href="?año={{ año|add:'1' }}">Año Siguiente</a>
+        </div>
+    </div>
+
+    <div class="row mt-2 mb-4">
+        <div class="col">
+            <div class="table-responsive">
+                {% if feriados %}
+                <table class="table table-sm text-center">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Motivo</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for feriado in feriados %}
+                        <tr>
+                            <td>{{ feriado.fecha|date:"d/m/Y" }}</td>
+                            <td>{{ feriado.detalle }}</td>
+                            <td>
+                                <a class="btn btn-danger btn-sm"
+                                   href="{% url 'admin_panel:eliminar_feriado' feriado.pk %}">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <h3 class="text-center">No hay feriados para {{ año }}.</h3>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Agregar feriado -->
+    <div class="row">
+        <div class="col-12 col-md-6">
+            <h4>Agregar Feriado</h4>
+            <form method="post" action="{% url 'admin_panel:agregar_feriado' %}">
+                {% csrf_token %}
+                <input type="hidden" name="ano" value="{{ año }}">
+                <div class="input-group mb-3">
+                    <input type="date" name="fecha_feriado"
+                           class="form-control" required>
+                    <input type="text" name="fecha_feriado_motivo"
+                           class="form-control" placeholder="Motivo" required>
+                    <button class="btn btn-success" type="submit">Agregar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

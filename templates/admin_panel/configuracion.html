@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Configuración General{% endblock %}
+{% block navbar %}{% include 'admin_panel/_navbar.html' %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Configuración General del Sitio</h1>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group row mb-2">
+            <label class="col-sm-5 col-md-4 col-lg-3 col-form-label">
+                Apertura del Comedor:
+            </label>
+            <div class="col-sm-4 col-md-3">
+                <input type="date" name="apertura_comedor" class="form-control"
+                       value="{{ config.apertura|date:'Y-m-d' }}" required>
+            </div>
+        </div>
+        <div class="form-group row mb-2">
+            <label class="col-sm-5 col-md-4 col-lg-3 col-form-label">
+                Cierre del Comedor:
+            </label>
+            <div class="col-sm-4 col-md-3">
+                <input type="date" name="cierre_comedor" class="form-control"
+                       value="{{ config.cierre|date:'Y-m-d' }}" required>
+            </div>
+        </div>
+        <div class="form-group row mb-2">
+            <label class="col-sm-5 col-md-4 col-lg-3 col-form-label">
+                Inicio del Receso:
+            </label>
+            <div class="col-sm-4 col-md-3">
+                <input type="date" name="inicio_receso" class="form-control"
+                       value="{{ config.vacaciones_inicio|date:'Y-m-d' }}" required>
+            </div>
+        </div>
+        <div class="form-group row mb-2">
+            <label class="col-sm-5 col-md-4 col-lg-3 col-form-label">
+                Fin del Receso:
+            </label>
+            <div class="col-sm-4 col-md-3">
+                <input type="date" name="fin_receso" class="form-control"
+                       value="{{ config.vacaciones_fin|date:'Y-m-d' }}" required>
+            </div>
+        </div>
+        <div class="form-group row mb-2">
+            <label class="col-sm-5 col-md-4 col-lg-3 col-form-label">
+                Inicio Venta Semanal:
+            </label>
+            <div class="col-sm-4 col-md-3">
+                <select name="inicio_venta_semana" class="form-control">
+                    {% for num, nombre in dias_semana.items %}
+                    <option value="{{ num }}"
+                        {% if config.dia_inicial == num %}selected{% endif %}>
+                        {{ nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="form-group row mb-2">
+            <label class="col-sm-5 col-md-4 col-lg-3 col-form-label">
+                Fin Venta Semanal:
+            </label>
+            <div class="col-sm-4 col-md-3">
+                <select name="fin_venta_semana" class="form-control">
+                    {% for num, nombre in dias_semana.items %}
+                    <option value="{{ num }}"
+                        {% if config.dia_final == num %}selected{% endif %}>
+                        {{ nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="form-group row mb-2">
+            <label class="col-sm-5 col-md-4 col-lg-3 col-form-label">
+                Hora de Cierre:
+            </label>
+            <div class="col-sm-4 col-md-3">
+                <input type="time" name="hora_cierre_venta" class="form-control"
+                       value="{{ config.hora_final|time:'H:i' }}" required>
+            </div>
+        </div>
+        <div class="form-group row mb-2">
+            <label class="col-sm-5 col-md-4 col-lg-3 col-form-label">
+                Permitir ambos turnos:
+            </label>
+            <div class="col-sm-4 col-md-3 d-flex align-items-center">
+                <input type="checkbox" name="permitir_ambos_turnos"
+                       {% if config.permitir_ambos_turnos %}checked{% endif %}>
+            </div>
+        </div>
+        <div class="form-group row mb-2">
+            <div class="col-sm-4 col-md-3 offset-sm-3">
+                <button type="submit" class="btn btn-primary">Guardar</button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

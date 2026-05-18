@@ -15,7 +15,6 @@ from django.core.paginator import Paginator
 from apps.accounts.models import CustomUser
 from apps.core.models import Precio
 from apps.comedor.models import Transaccion, LogCarga, Compra
-from apps.pagos.models import CargaVirtual
 from .mixins import CajeroRequiredMixin, AdministradorRequiredMixin, RepartidorRequiredMixin
 
 

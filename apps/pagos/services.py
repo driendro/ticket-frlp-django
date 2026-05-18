@@ -3,6 +3,7 @@ import json
 import logging
 from datetime import datetime
 import time as time_module
+import uuid
 
 import mercadopago
 
@@ -22,7 +23,7 @@ def crear_compra_pendiente(usuario, seleccion: list, total: float) -> CompraPend
     Guarda la selección de viandas como compra pendiente.
     Equivale a guardarCompraPendiente() de CI3.
     """
-    external_reference = f"{usuario.id}-{int(datetime.now().timestamp() * 1000000)}"
+    external_reference = f"{usuario.id}-{uuid.uuid4().hex[:12]}"
 
     compra = CompraPendiente.objects.create(
         usuario=usuario,

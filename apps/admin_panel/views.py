@@ -771,7 +771,10 @@ class DescargarExcelView(CajeroRequiredMixin, View):
                 dia_comprado=fecha
             ).select_related('usuario').order_by('usuario__last_name')
 
-            ws = wb.create_sheet(title=fecha.strftime('%d-%m-%Y'))
+            dias_es = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
+            meses_es = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+            nombre_hoja = f"{dias_es[fecha.weekday()]}-{fecha.day:02d}-{meses_es[fecha.month - 1]}"
+            ws = wb.create_sheet(title=nombre_hoja)
 
             ws.merge_cells('A1:G1')
             ws['A1'] = f'Listado de viandas - {fecha.strftime("%d/%m/%Y")}'

@@ -38,4 +38,5 @@ urlpatterns = [
     path('informe/pedidos/', views.ResumenPedidosSemanaView.as_view(),
          name='informe_pedidos'),
     path('dashboard/', views.DashboardView.as_view(), name='dashboard'),
+    path('dashboard/exportar/', views.DashboardExportView.as_view(), name='dashboard_export'),
 ]

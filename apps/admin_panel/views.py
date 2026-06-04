@@ -1063,121 +1063,194 @@ class ResumenPedidosSemanaView(CajeroRequiredMixin, View):
         return response
 
 
+def _dashboard_data(fecha, vista):
+    import json
+    from apps.core.models import Comentario
+
+    DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes']
+    DIAS_CORTO = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie']
+
+    # ── Fecha seleccionada ─────────────────────────────────────────────────
+    qs_fecha = Compra.objects.filter(dia_comprado=fecha)
+    compras_dia   = qs_fecha.count()
+    entregas_dia  = qs_fecha.filter(retiro=True).count()
+
+    por_menu  = [qs_fecha.filter(menu=m).count() for m in ('Basico', 'Veggie', 'Celiaco')]
+    por_turno = [qs_fecha.filter(turno=t).count() for t in ('manana', 'noche')]
+
+    cargas_metodo = {'Efectivo': 0, 'Virtual': 0, 'MP': 0}
+    for c in LogCarga.objects.filter(fecha=fecha):
+        if c.formato in cargas_metodo and c.monto > 0:
+            cargas_metodo[c.formato] += float(c.monto)
+
+    # ── Sistema ────────────────────────────────────────────────────────────
+    saldo_total      = float(CustomUser.objects.aggregate(t=Sum('saldo'))['t'] or 0)
+    usuarios_activos = (
+        CustomUser.objects
+        .filter(compras__dia_comprado__gte=date.today() - timedelta(weeks=4))
+        .distinct().count()
+    )
+    comentarios_sin_leer = Comentario.objects.filter(leido=False).count()
+
+    # ── Línea temporal: últimas 8 semanas ──────────────────────────────────
+    inicio = date.today() - timedelta(weeks=8)
+    base_qs = Compra.objects.filter(retiro=True) if vista == 'entregas' else Compra.objects
+    diarios_qs = (
+        base_qs.filter(dia_comprado__gte=inicio)
+        .values('dia_comprado').annotate(total=Count('id'))
+        .order_by('dia_comprado')
+    )
+    diarios_dict = {r['dia_comprado']: r['total'] for r in diarios_qs}
+
+    linea_labels, linea_data, linea_colors = [], [], []
+    cur = inicio
+    while cur <= date.today():
+        if cur.weekday() < 5:
+            linea_labels.append(cur.strftime('%d/%m'))
+            linea_data.append(diarios_dict.get(cur, 0))
+            linea_colors.append('rgba(220,53,69,0.9)' if cur == fecha else 'rgba(54,96,146,0.7)')
+        cur += timedelta(days=1)
+
+    # ── Distribución semanal ───────────────────────────────────────────────
+    todos_diarios = base_qs.values('dia_comprado').annotate(total=Count('id'))
+    by_wd = defaultdict(list)
+    for r in todos_diarios:
+        wd = r['dia_comprado'].weekday()
+        if wd < 5:
+            by_wd[wd].append(r['total'])
+
+    sem_promedios, sem_maximos, sem_minimos = [], [], []
+    for i in range(5):
+        counts = by_wd[i]
+        if counts:
+            sem_promedios.append(round(mean(counts), 1))
+            sem_maximos.append(max(counts))
+            sem_minimos.append(min(counts))
+        else:
+            sem_promedios.append(None)
+            sem_maximos.append(None)
+            sem_minimos.append(None)
+
+    return {
+        # KPIs
+        'fecha': fecha,
+        'vista': vista,
+        'compras_dia': compras_dia,
+        'entregas_dia': entregas_dia,
+        'saldo_total': saldo_total,
+        'usuarios_activos': usuarios_activos,
+        'comentarios_sin_leer': comentarios_sin_leer,
+        # JSON para charts
+        'json_linea_labels':   json.dumps(linea_labels),
+        'json_linea_data':     json.dumps(linea_data),
+        'json_linea_colors':   json.dumps(linea_colors),
+        'json_menu_data':      json.dumps(por_menu),
+        'json_turno_data':     json.dumps(por_turno),
+        'json_cargas_data':    json.dumps(list(cargas_metodo.values())),
+        'json_sem_labels':     json.dumps(DIAS_CORTO),
+        'json_sem_promedios':  json.dumps(sem_promedios),
+        'json_sem_maximos':    json.dumps(sem_maximos),
+        'json_sem_minimos':    json.dumps(sem_minimos),
+        # para exportar excel
+        'by_wd': by_wd,
+        'diarios_dict': diarios_dict,
+        'DIAS': DIAS,
+    }
+
+
 class DashboardView(AdministradorRequiredMixin, View):
 
     template_name = 'admin_panel/dashboard.html'
 
     def get(self, request):
         fecha_str = request.GET.get('fecha')
-        vista = request.GET.get('vista', 'compras')  # 'compras' | 'entregas'
-
+        vista = request.GET.get('vista', 'compras')
         try:
             fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else date.today()
         except ValueError:
             fecha = date.today()
 
-        # ── Estadísticas de la fecha seleccionada ──────────────────────────
-        qs_fecha = Compra.objects.filter(dia_comprado=fecha)
-
-        compras_dia = qs_fecha.count()
-        entregas_dia = qs_fecha.filter(retiro=True).count()
-        pendientes_dia = compras_dia - entregas_dia
-
-        por_turno = {
-            'manana': qs_fecha.filter(turno='manana').count(),
-            'noche':  qs_fecha.filter(turno='noche').count(),
-        }
-        por_menu = {
-            'Basico':  qs_fecha.filter(menu='Basico').count(),
-            'Veggie':  qs_fecha.filter(menu='Veggie').count(),
-            'Celiaco': qs_fecha.filter(menu='Celiaco').count(),
-        }
-
-        cargas_dia = LogCarga.objects.filter(fecha=fecha)
-        cargas_por_metodo = {
-            'Efectivo': {'total': 0, 'cantidad': 0},
-            'Virtual':  {'total': 0, 'cantidad': 0},
-            'MP':       {'total': 0, 'cantidad': 0},
-        }
-        for c in cargas_dia:
-            if c.formato in cargas_por_metodo and c.monto > 0:
-                cargas_por_metodo[c.formato]['total'] += float(c.monto)
-                cargas_por_metodo[c.formato]['cantidad'] += 1
-
-        # ── Promedio histórico para el mismo día de semana ─────────────────
-        dia_semana = fecha.weekday()  # 0=lun … 4=vie
-        historico = (
-            Compra.objects
-            .exclude(dia_comprado=fecha)
-            .values('dia_comprado')
-            .annotate(total=Count('id'))
-        )
-        conteos_mismo_dia = [
-            r['total'] for r in historico
-            if r['dia_comprado'].weekday() == dia_semana
-        ]
-        promedio_historico = round(mean(conteos_mismo_dia), 1) if conteos_mismo_dia else None
-
-        # ── Sistema ────────────────────────────────────────────────────────
-        saldo_total = CustomUser.objects.aggregate(t=Sum('saldo'))['t'] or 0
-        hace_4_semanas = date.today() - timedelta(weeks=4)
-        usuarios_activos = (
-            CustomUser.objects
-            .filter(compras__dia_comprado__gte=hace_4_semanas)
-            .distinct()
-            .count()
-        )
-        from apps.core.models import Comentario
-        comentarios_sin_leer = Comentario.objects.filter(leido=False).count()
-
-        # ── Distribución semanal ───────────────────────────────────────────
-        base_qs = Compra.objects.filter(retiro=True) if vista == 'entregas' else Compra.objects
-        diarios = base_qs.values('dia_comprado').annotate(total=Count('id'))
-
-        by_wd = defaultdict(list)
-        for r in diarios:
-            wd = r['dia_comprado'].weekday()
-            if wd < 5:  # solo lun–vie
-                by_wd[wd].append(r['total'])
-
-        DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes']
-        tabla_semanal = []
-        for i in range(5):
-            counts = by_wd[i]
-            if counts:
-                tabla_semanal.append({
-                    'dia': DIAS[i],
-                    'promedio': round(mean(counts), 1),
-                    'maximo': max(counts),
-                    'minimo': min(counts),
-                    'semanas': len(counts),
-                })
-            else:
-                tabla_semanal.append({
-                    'dia': DIAS[i],
-                    'promedio': None,
-                    'maximo': None,
-                    'minimo': None,
-                    'semanas': 0,
-                })
-
-        context = {
-            'titulo': 'Dashboard',
-            'fecha': fecha,
-            'vista': vista,
-            # fecha seleccionada
-            'compras_dia': compras_dia,
-            'entregas_dia': entregas_dia,
-            'pendientes_dia': pendientes_dia,
-            'por_turno': por_turno,
-            'por_menu': por_menu,
-            'cargas_por_metodo': cargas_por_metodo,
-            'promedio_historico': promedio_historico,
-            # sistema
-            'saldo_total': saldo_total,
-            'usuarios_activos': usuarios_activos,
-            'comentarios_sin_leer': comentarios_sin_leer,
-            # distribución semanal
-            'tabla_semanal': tabla_semanal,
-        }
+        context = {'titulo': 'Dashboard', **_dashboard_data(fecha, vista)}
         return render(request, self.template_name, context)
+
+
+class DashboardExportView(AdministradorRequiredMixin, View):
+
+    def get(self, request):
+        fecha_str = request.GET.get('fecha')
+        vista = request.GET.get('vista', 'compras')
+        try:
+            fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else date.today()
+        except ValueError:
+            fecha = date.today()
+
+        data = _dashboard_data(fecha, vista)
+        DIAS = data['DIAS']
+
+        wb = openpyxl.Workbook()
+        hf = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
+        hfont = Font(color='FFFFFF', bold=True)
+
+        def _header(ws, cols):
+            for j, h in enumerate(cols, 1):
+                c = ws.cell(row=1, column=j, value=h)
+                c.fill = hf; c.font = hfont
+                c.alignment = Alignment(horizontal='center')
+
+        def _autofit(ws):
+            for i, col in enumerate(ws.columns, 1):
+                mx = max((len(str(cell.value or '')) for cell in col
+                          if not isinstance(cell, MergedCell)), default=8)
+                ws.column_dimensions[get_column_letter(i)].width = mx + 4
+
+        # ── Hoja 1: Compras diarias ────────────────────────────────────────
+        ws1 = wb.active
+        ws1.title = 'Compras diarias'
+        _header(ws1, ['Fecha', 'Día', 'Compras' if vista == 'compras' else 'Entregas'])
+        inicio = date.today() - timedelta(weeks=8)
+        cur = inicio
+        row = 2
+        dias_es = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo']
+        while cur <= date.today():
+            if cur.weekday() < 5:
+                ws1.append([
+                    cur.strftime('%d/%m/%Y'),
+                    dias_es[cur.weekday()],
+                    data['diarios_dict'].get(cur, 0),
+                ])
+            cur += timedelta(days=1)
+        _autofit(ws1)
+
+        # ── Hoja 2: Distribución semanal ──────────────────────────────────
+        ws2 = wb.create_sheet('Distribución semanal')
+        _header(ws2, ['Día', 'Promedio', 'Máximo', 'Mínimo', 'Semanas con datos'])
+        for i in range(5):
+            counts = data['by_wd'][i]
+            ws2.append([
+                DIAS[i],
+                round(mean(counts), 1) if counts else '-',
+                max(counts) if counts else '-',
+                min(counts) if counts else '-',
+                len(counts),
+            ])
+        _autofit(ws2)
+
+        # ── Hoja 3: Sistema ───────────────────────────────────────────────
+        ws3 = wb.create_sheet('Sistema')
+        ws3.append(['Métrica', 'Valor'])
+        ws3['A1'].font = Font(bold=True); ws3['B1'].font = Font(bold=True)
+        ws3.append(['Fecha consultada', fecha.strftime('%d/%m/%Y')])
+        ws3.append(['Compras en la fecha', data['compras_dia']])
+        ws3.append(['Entregas en la fecha', data['entregas_dia']])
+        ws3.append(['Saldo total en el sistema', f"${data['saldo_total']:,.0f}"])
+        ws3.append(['Usuarios activos (últimas 4 sem.)', data['usuarios_activos']])
+        ws3.append(['Comentarios sin leer', data['comentarios_sin_leer']])
+        _autofit(ws3)
+
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        nombre = f"Dashboard_{fecha.strftime('%Y-%m-%d')}_{vista}"
+        response['Content-Disposition'] = f'attachment; filename="{nombre}.xlsx"'
+        wb.save(response)
+        return response

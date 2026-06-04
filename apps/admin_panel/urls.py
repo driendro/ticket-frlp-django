@@ -24,6 +24,8 @@ urlpatterns = [
     path('feriados/', views.FeriadosView.as_view(), name='feriados'),
     path('feriados/agregar/', views.AgregarFeriadoView.as_view(),
          name='agregar_feriado'),
+    path('feriados/importar-csv/', views.ImportarFeriadosCSVView.as_view(),
+         name='importar_feriados_csv'),
     path('feriados/eliminar/<int:pk>/',
          views.EliminarFeriadoView.as_view(), name='eliminar_feriado'),
     path('menu/', views.MenuAdminView.as_view(), name='menu'),

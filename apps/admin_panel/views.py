@@ -502,6 +502,55 @@ class FeriadosView(AdministradorRequiredMixin, View):
         })
 
 
+def _devolver_compras_fecha(fecha, motivo):
+    from apps.comedor.models import LogCompra
+    from django.core.mail import send_mail
+    from django.template.loader import render_to_string
+    from django.conf import settings
+    import logging
+
+    for compra in Compra.objects.filter(dia_comprado=fecha):
+        usuario = compra.usuario
+        nuevo_saldo = float(usuario.saldo) + float(compra.precio)
+
+        transaccion = Transaccion.objects.create(
+            usuario=usuario,
+            transaccion='Reintegro',
+            monto=compra.precio,
+            saldo=nuevo_saldo,
+        )
+        LogCompra.objects.create(
+            usuario=usuario,
+            dia_comprado=compra.dia_comprado,
+            precio=compra.precio,
+            turno=compra.turno,
+            menu=compra.menu,
+            transaccion_tipo='Reintegro',
+            transaccion=transaccion,
+        )
+        usuario.saldo = nuevo_saldo
+        usuario.save(update_fields=['saldo'])
+        compra.delete()
+
+        try:
+            mensaje = render_to_string('emails/reintegro.html', {
+                'usuario': usuario,
+                'compra': compra,
+                'motivo': motivo,
+                'saldo': nuevo_saldo,
+            })
+            send_mail(
+                subject=f'Reintegro por {motivo}',
+                message='',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[usuario.email],
+                html_message=mensaje,
+                fail_silently=True,
+            )
+        except Exception as e:
+            logging.getLogger(__name__).error(f"Error email reintegro: {e}")
+
+
 class AgregarFeriadoView(AdministradorRequiredMixin, View):
     """
     Equivale a add_feriado() de Administrador.php en CI3.
@@ -518,71 +567,13 @@ class AgregarFeriadoView(AdministradorRequiredMixin, View):
                 defaults={'detalle': detalle}
             )
             if creado:
-                # Devolver compras de ese día
-                self._devolver_compras_fecha(fecha, detalle)
+                _devolver_compras_fecha(fecha, detalle)
                 messages.success(request, f'Feriado {fecha} agregado.')
             else:
-                messages.warning(
-                    request, 'Ya existe un feriado para esa fecha.')
+                messages.warning(request, 'Ya existe un feriado para esa fecha.')
 
         return redirect(f"{request.build_absolute_uri('?')}año={año}" if año
                         else 'admin_panel:feriados')
-
-    def _devolver_compras_fecha(self, fecha, motivo):
-        """Devuelve todas las compras de una fecha dada."""
-        compras = Compra.objects.filter(dia_comprado=fecha)
-
-        for compra in compras:
-            usuario = compra.usuario
-            nuevo_saldo = float(usuario.saldo) + float(compra.precio)
-
-            transaccion = Transaccion.objects.create(
-                usuario=usuario,
-                transaccion='Reintegro',
-                monto=compra.precio,
-                saldo=nuevo_saldo,
-            )
-
-            from apps.comedor.models import LogCompra
-            LogCompra.objects.create(
-                usuario=usuario,
-                dia_comprado=compra.dia_comprado,
-                precio=compra.precio,
-                turno=compra.turno,
-                menu=compra.menu,
-                transaccion_tipo='Reintegro',
-                transaccion=transaccion,
-            )
-
-            usuario.saldo = nuevo_saldo
-            usuario.save(update_fields=['saldo'])
-            compra.delete()
-
-            # Email reintegro
-            try:
-                from django.core.mail import send_mail
-                from django.template.loader import render_to_string
-                from django.conf import settings
-
-                context = {
-                    'usuario': usuario,
-                    'compra': compra,
-                    'motivo': motivo,
-                    'saldo': nuevo_saldo,
-                }
-                mensaje = render_to_string('emails/reintegro.html', context)
-                send_mail(
-                    subject=f'Reintegro por {motivo}',
-                    message='',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[usuario.email],
-                    html_message=mensaje,
-                    fail_silently=True,
-                )
-            except Exception as e:
-                import logging
-                logging.getLogger(__name__).error(
-                    f"Error email reintegro: {e}")
 
 
 class EliminarFeriadoView(AdministradorRequiredMixin, View):
@@ -596,6 +587,72 @@ class EliminarFeriadoView(AdministradorRequiredMixin, View):
         feriado.delete()
         messages.success(request, 'Feriado eliminado.')
         return redirect(f"{request.build_absolute_uri('/panel/feriados/')}?año={año}")
+
+
+class ImportarFeriadosCSVView(AdministradorRequiredMixin, View):
+
+    FORMATOS_FECHA = ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y']
+
+    def post(self, request):
+        archivo = request.FILES.get('csv_feriados')
+        if not archivo:
+            messages.error(request, 'Seleccioná un archivo CSV.')
+            return redirect('admin_panel:feriados')
+
+        try:
+            contenido = archivo.read().decode('utf-8-sig')
+            reader = csv.reader(io.StringIO(contenido))
+        except Exception:
+            messages.error(request, 'No se pudo leer el archivo.')
+            return redirect('admin_panel:feriados')
+
+        agregados, omitidos, errores = 0, 0, []
+
+        for num, fila in enumerate(reader, start=1):
+            if not fila or all(c.strip() == '' for c in fila):
+                continue
+
+            fecha_str = fila[0].strip()
+            motivo = fila[1].strip() if len(fila) > 1 else ''
+
+            fecha = None
+            for fmt in self.FORMATOS_FECHA:
+                try:
+                    from datetime import datetime as dt
+                    fecha = dt.strptime(fecha_str, fmt).date()
+                    break
+                except ValueError:
+                    pass
+
+            if fecha is None:
+                # Puede ser la fila de cabecera — la saltamos en silencio si es la primera
+                if num == 1:
+                    continue
+                errores.append(f'Fila {num}: fecha "{fecha_str}" no reconocida.')
+                continue
+
+            if not motivo:
+                errores.append(f'Fila {num}: falta el motivo.')
+                continue
+
+            _, creado = Feriado.objects.get_or_create(
+                fecha=fecha,
+                defaults={'detalle': motivo}
+            )
+            if creado:
+                _devolver_compras_fecha(fecha, motivo)
+                agregados += 1
+            else:
+                omitidos += 1
+
+        if agregados:
+            messages.success(request, f'{agregados} feriado(s) importado(s) correctamente.')
+        if omitidos:
+            messages.warning(request, f'{omitidos} feriado(s) ya existían y fueron omitidos.')
+        for e in errores:
+            messages.error(request, e)
+
+        return redirect('admin_panel:feriados')
 
 
 class MenuAdminView(AdministradorRequiredMixin, View):

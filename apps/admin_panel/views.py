@@ -716,71 +716,97 @@ class DescargarExcelView(CajeroRequiredMixin, View):
     Equivale a descargarExcel() de Vendedor.php en CI3.
     """
 
+    def _semanas(self):
+        """Retorna lista de 3 semanas (lun–vie): hace 2 semanas, la anterior y la actual."""
+        from datetime import date, timedelta
+        hoy = date.today()
+        lunes_actual = hoy - timedelta(days=hoy.weekday())
+        semanas = []
+        for offset in range(2, -1, -1):
+            lunes = lunes_actual - timedelta(weeks=offset)
+            dias = [lunes + timedelta(days=i) for i in range(5)]
+            semanas.append(dias)
+        return semanas
+
     def get(self, request):
         return render(request, 'admin_panel/descarga_planilla.html', {
             'titulo': 'Descargar Listados',
+            'semanas': self._semanas(),
         })
 
     def post(self, request):
-        fecha_str = request.POST.get('fecha')
-        try:
-            fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
-        except (ValueError, TypeError):
-            messages.error(request, 'Fecha inválida.')
-            return redirect('admin_panel:excel')
+        fechas_str = request.POST.getlist('fechas')
+        fecha_especifica = request.POST.get('fecha_especifica', '').strip()
 
-        compras = Compra.objects.filter(
-            dia_comprado=fecha
-        ).select_related('usuario').order_by('usuario__last_name')
+        if fecha_especifica:
+            fechas_str.append(fecha_especifica)
+
+        fechas = []
+        for f in fechas_str:
+            try:
+                fechas.append(datetime.strptime(f, '%Y-%m-%d').date())
+            except (ValueError, TypeError):
+                pass
+
+        fechas = sorted(set(fechas))
+
+        if not fechas:
+            messages.error(request, 'Seleccioná al menos una fecha.')
+            return render(request, 'admin_panel/descarga_planilla.html', {
+                'titulo': 'Descargar Listados',
+                'semanas': self._semanas(),
+            })
+
+        header_fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
+        header_font = Font(color='FFFFFF', bold=True)
+        headers = ['#', 'Documento', 'Apellido', 'Nombre', 'Menú', 'Turno', 'Claustro']
 
         wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = 'Listado'
+        wb.remove(wb.active)
 
-        # Estilo header
-        header_fill = PatternFill(
-            start_color='366092',
-            end_color='366092',
-            fill_type='solid'
-        )
-        header_font = Font(color='FFFFFF', bold=True)
+        for fecha in fechas:
+            compras = Compra.objects.filter(
+                dia_comprado=fecha
+            ).select_related('usuario').order_by('usuario__last_name')
 
-        # Título
-        ws.merge_cells('A1:G1')
-        ws['A1'] = f'Listado de viandas - {fecha.strftime("%d/%m/%Y")}'
-        ws['A1'].font = Font(bold=True, size=14)
-        ws['A1'].alignment = Alignment(horizontal='center')
+            ws = wb.create_sheet(title=fecha.strftime('%d-%m-%Y'))
 
-        # Headers
-        headers = ['#', 'Documento', 'Apellido',
-                   'Nombre', 'Menú', 'Turno', 'Claustro']
-        for col, header in enumerate(headers, 1):
-            cell = ws.cell(row=2, column=col, value=header)
-            cell.fill = header_fill
-            cell.font = header_font
-            cell.alignment = Alignment(horizontal='center')
+            ws.merge_cells('A1:G1')
+            ws['A1'] = f'Listado de viandas - {fecha.strftime("%d/%m/%Y")}'
+            ws['A1'].font = Font(bold=True, size=14)
+            ws['A1'].alignment = Alignment(horizontal='center')
 
-        # Datos
-        for i, compra in enumerate(compras, 1):
-            ws.append([
-                i,
-                compra.usuario.documento,
-                compra.usuario.last_name.upper(),
-                compra.usuario.first_name,
-                compra.get_menu_display(),
-                compra.get_turno_display(),
-                compra.usuario.tipo,
-            ])
+            for col, header in enumerate(headers, 1):
+                cell = ws.cell(row=2, column=col, value=header)
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal='center')
 
-        # Ancho de columnas
-        for col in ws.columns:
-            max_length = max(len(str(cell.value or '')) for cell in col)
-            ws.column_dimensions[col[0].column_letter].width = max_length + 4
+            if compras:
+                for i, compra in enumerate(compras, 1):
+                    ws.append([
+                        i,
+                        compra.usuario.documento,
+                        compra.usuario.last_name.upper(),
+                        compra.usuario.first_name,
+                        compra.get_menu_display(),
+                        compra.get_turno_display(),
+                        compra.usuario.tipo,
+                    ])
+            else:
+                ws.merge_cells('A3:G3')
+                ws['A3'] = 'Sin compras para esta fecha.'
+                ws['A3'].alignment = Alignment(horizontal='center')
 
+            for col in ws.columns:
+                max_length = max(len(str(cell.value or '')) for cell in col)
+                ws.column_dimensions[col[0].column_letter].width = max_length + 4
+
+        nombre = f'Listado_{fechas[0]}' if len(fechas) == 1 else f'Listado_{fechas[0]}_{fechas[-1]}'
         response = HttpResponse(
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
-        response['Content-Disposition'] = f'attachment; filename="Listado_{fecha}.xlsx"'
+        response['Content-Disposition'] = f'attachment; filename="{nombre}.xlsx"'
         wb.save(response)
         return response
 

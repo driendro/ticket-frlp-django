@@ -1,26 +1,65 @@
 {% extends 'base.html' %}
-
 {% block title %}Descargar Listados{% endblock %}
-
 {% block content %}
-<div class="container">
-    <div class="row justify-content-center">
-        <h1 class="text-center mt-4">Descargar Listados</h1>
-        <div class="col-10 col-md-7 col-lg-4 my-3">
-            {% for i in "12345" %}
-            {% with dias_adelante=forloop.counter %}
-            <form action="{% url 'admin_panel:excel' %}" method="post" class="mb-3">
-                {% csrf_token %}
-                <div class="input-group">
-                    <input type="date" name="fecha" class="form-control" required>
-                    <button class="btn btn-success" type="submit">
-                        Descargar
-                    </button>
-                </div>
-            </form>
-            {% endwith %}
-            {% endfor %}
+<div class="container py-4">
+    <h1 class="fw-bold mb-4">Descargar Listados</h1>
+
+    <form method="post" action="{% url 'admin_panel:excel' %}">
+        {% csrf_token %}
+
+        <div class="card mb-4">
+            <div class="card-header fw-semibold">Seleccionar días</div>
+            <div class="card-body p-0">
+                <table class="table table-bordered table-hover mb-0 text-center align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Semana</th>
+                            <th>Lunes</th>
+                            <th>Martes</th>
+                            <th>Miércoles</th>
+                            <th>Jueves</th>
+                            <th>Viernes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for semana in semanas %}
+                        <tr>
+                            <td class="text-muted small">
+                                {{ semana.0|date:"d/m" }} – {{ semana.4|date:"d/m" }}
+                            </td>
+                            {% for dia in semana %}
+                            <td>
+                                <label class="d-flex flex-column align-items-center gap-1 py-1 cursor-pointer">
+                                    <input type="checkbox" name="fechas" value="{{ dia|date:'Y-m-d' }}" class="form-check-input">
+                                    <span class="small">{{ dia|date:"d/m" }}</span>
+                                </label>
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
+
+        <div class="card mb-4">
+            <div class="card-header fw-semibold">Fecha particular</div>
+            <div class="card-body">
+                <div class="row align-items-end g-2">
+                    <div class="col-auto">
+                        <input type="date" name="fecha_especifica" class="form-control">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-success">
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Descargar Excel
+        </button>
+    </form>
 </div>
+
+<style>
+    .cursor-pointer { cursor: pointer; }
+</style>
 {% endblock %}

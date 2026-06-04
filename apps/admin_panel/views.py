@@ -2,6 +2,8 @@
 from datetime import datetime, date, timedelta
 from django.http import HttpResponse
 from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.utils import get_column_letter
+from openpyxl.cell import MergedCell
 import openpyxl
 import io
 import csv
@@ -798,9 +800,13 @@ class DescargarExcelView(CajeroRequiredMixin, View):
                 ws['A3'] = 'Sin compras para esta fecha.'
                 ws['A3'].alignment = Alignment(horizontal='center')
 
-            for col in ws.columns:
-                max_length = max(len(str(cell.value or '')) for cell in col)
-                ws.column_dimensions[col[0].column_letter].width = max_length + 4
+            for i, col in enumerate(ws.columns, 1):
+                max_length = max(
+                    len(str(cell.value or ''))
+                    for cell in col
+                    if not isinstance(cell, MergedCell)
+                ) or 10
+                ws.column_dimensions[get_column_letter(i)].width = max_length + 4
 
         nombre = f'Listado_{fechas[0]}' if len(fechas) == 1 else f'Listado_{fechas[0]}_{fechas[-1]}'
         response = HttpResponse(

@@ -75,6 +75,11 @@ class CustomUser(AbstractUser):
             return 'admin_panel:index'
         return 'comedor:index'
 
+    @property
+    def home_url(self):
+        from django.urls import reverse
+        return reverse(self.home_url_name)
+
     def get_precio(self):
         """Retorna el costo de la vianda según tipo y beca."""
         from apps.core.models import Precio

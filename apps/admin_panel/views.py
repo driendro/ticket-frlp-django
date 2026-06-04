@@ -1,5 +1,8 @@
 # apps/admin_panel/views.py
 from datetime import datetime, date, timedelta
+from collections import defaultdict
+from statistics import mean, median
+from django.db.models import Sum, Count
 from django.http import HttpResponse
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
@@ -1058,3 +1061,123 @@ class ResumenPedidosSemanaView(CajeroRequiredMixin, View):
         response['Content-Disposition'] = f'inline; filename="Pedidos_{fecha1}_{fecha2}.pdf"'
         response.write(pdf)
         return response
+
+
+class DashboardView(AdministradorRequiredMixin, View):
+
+    template_name = 'admin_panel/dashboard.html'
+
+    def get(self, request):
+        fecha_str = request.GET.get('fecha')
+        vista = request.GET.get('vista', 'compras')  # 'compras' | 'entregas'
+
+        try:
+            fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else date.today()
+        except ValueError:
+            fecha = date.today()
+
+        # ── Estadísticas de la fecha seleccionada ──────────────────────────
+        qs_fecha = Compra.objects.filter(dia_comprado=fecha)
+
+        compras_dia = qs_fecha.count()
+        entregas_dia = qs_fecha.filter(retiro=True).count()
+        pendientes_dia = compras_dia - entregas_dia
+
+        por_turno = {
+            'manana': qs_fecha.filter(turno='manana').count(),
+            'noche':  qs_fecha.filter(turno='noche').count(),
+        }
+        por_menu = {
+            'Basico':  qs_fecha.filter(menu='Basico').count(),
+            'Veggie':  qs_fecha.filter(menu='Veggie').count(),
+            'Celiaco': qs_fecha.filter(menu='Celiaco').count(),
+        }
+
+        cargas_dia = LogCarga.objects.filter(fecha=fecha)
+        cargas_por_metodo = {
+            'Efectivo': {'total': 0, 'cantidad': 0},
+            'Virtual':  {'total': 0, 'cantidad': 0},
+            'MP':       {'total': 0, 'cantidad': 0},
+        }
+        for c in cargas_dia:
+            if c.formato in cargas_por_metodo and c.monto > 0:
+                cargas_por_metodo[c.formato]['total'] += float(c.monto)
+                cargas_por_metodo[c.formato]['cantidad'] += 1
+
+        # ── Promedio histórico para el mismo día de semana ─────────────────
+        dia_semana = fecha.weekday()  # 0=lun … 4=vie
+        historico = (
+            Compra.objects
+            .exclude(dia_comprado=fecha)
+            .values('dia_comprado')
+            .annotate(total=Count('id'))
+        )
+        conteos_mismo_dia = [
+            r['total'] for r in historico
+            if r['dia_comprado'].weekday() == dia_semana
+        ]
+        promedio_historico = round(mean(conteos_mismo_dia), 1) if conteos_mismo_dia else None
+
+        # ── Sistema ────────────────────────────────────────────────────────
+        saldo_total = CustomUser.objects.aggregate(t=Sum('saldo'))['t'] or 0
+        hace_4_semanas = date.today() - timedelta(weeks=4)
+        usuarios_activos = (
+            CustomUser.objects
+            .filter(compras__dia_comprado__gte=hace_4_semanas)
+            .distinct()
+            .count()
+        )
+        from apps.core.models import Comentario
+        comentarios_sin_leer = Comentario.objects.filter(leido=False).count()
+
+        # ── Distribución semanal ───────────────────────────────────────────
+        base_qs = Compra.objects.filter(retiro=True) if vista == 'entregas' else Compra.objects
+        diarios = base_qs.values('dia_comprado').annotate(total=Count('id'))
+
+        by_wd = defaultdict(list)
+        for r in diarios:
+            wd = r['dia_comprado'].weekday()
+            if wd < 5:  # solo lun–vie
+                by_wd[wd].append(r['total'])
+
+        DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes']
+        tabla_semanal = []
+        for i in range(5):
+            counts = by_wd[i]
+            if counts:
+                tabla_semanal.append({
+                    'dia': DIAS[i],
+                    'promedio': round(mean(counts), 1),
+                    'maximo': max(counts),
+                    'minimo': min(counts),
+                    'semanas': len(counts),
+                })
+            else:
+                tabla_semanal.append({
+                    'dia': DIAS[i],
+                    'promedio': None,
+                    'maximo': None,
+                    'minimo': None,
+                    'semanas': 0,
+                })
+
+        context = {
+            'titulo': 'Dashboard',
+            'fecha': fecha,
+            'vista': vista,
+            # fecha seleccionada
+            'compras_dia': compras_dia,
+            'entregas_dia': entregas_dia,
+            'pendientes_dia': pendientes_dia,
+            'por_turno': por_turno,
+            'por_menu': por_menu,
+            'cargas_por_metodo': cargas_por_metodo,
+            'promedio_historico': promedio_historico,
+            # sistema
+            'saldo_total': saldo_total,
+            'usuarios_activos': usuarios_activos,
+            'comentarios_sin_leer': comentarios_sin_leer,
+            # distribución semanal
+            'tabla_semanal': tabla_semanal,
+        }
+        return render(request, self.template_name, context)

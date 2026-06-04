@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <h1 class="fw-bold mb-0">Dashboard</h1>
+        <form method="get" class="d-flex align-items-center gap-2">
+            <input type="hidden" name="vista" value="{{ vista }}">
+            <input type="date" name="fecha" value="{{ fecha|date:'Y-m-d' }}" class="form-control form-control-sm" style="width:160px">
+            <button class="btn btn-sm btn-secondary" type="submit">Ver</button>
+            <a href="{% url 'admin_panel:dashboard' %}?vista={{ vista }}" class="btn btn-sm btn-outline-secondary">Hoy</a>
+        </form>
+    </div>
+
+    <!-- ── Tarjetas de la fecha ─────────────────────────────────────────── -->
+    <h5 class="text-muted mb-3">{{ fecha|date:"l d/m/Y" }}</h5>
+    <div class="row g-3 mb-4">
+
+        <div class="col-6 col-md-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Compras</div>
+                    <div class="fs-2 fw-bold">{{ compras_dia }}</div>
+                    {% if promedio_historico %}
+                    <div class="small text-muted">
+                        Promedio {{ fecha|date:"l" }}: <strong>{{ promedio_historico }}</strong>
+                        {% if compras_dia > promedio_historico %}
+                            <span class="text-success">↑</span>
+                        {% elif compras_dia < promedio_historico %}
+                            <span class="text-danger">↓</span>
+                        {% else %}
+                            <span class="text-secondary">→</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Entregas / Pendientes</div>
+                    <div class="fs-2 fw-bold">{{ entregas_dia }} <small class="text-muted fs-6">/ {{ pendientes_dia }}</small></div>
+                    {% if compras_dia %}
+                    <div class="progress mt-2" style="height:6px">
+                        <div class="progress-bar bg-success" style="width:{% widthratio entregas_dia compras_dia 100 %}%"></div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-muted small mb-2">Por turno</div>
+                    <div class="d-flex justify-content-between">
+                        <span>Mediodía</span><strong>{{ por_turno.manana }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Noche</span><strong>{{ por_turno.noche }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-muted small mb-2">Por menú</div>
+                    <div class="d-flex justify-content-between">
+                        <span>Básico</span><strong>{{ por_menu.Basico }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Vegetariano</span><strong>{{ por_menu.Veggie }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Sin TACC</span><strong>{{ por_menu.Celiaco }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Cargas del día -->
+    <div class="row g-3 mb-4">
+        {% for metodo, datos in cargas_por_metodo.items %}
+        <div class="col-4 col-md-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Cargas {{ metodo }}</div>
+                    <div class="fw-bold">${{ datos.total|floatformat:0 }}</div>
+                    <div class="text-muted small">{{ datos.cantidad }} op.</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- ── Tarjetas del sistema ─────────────────────────────────────────── -->
+    <h5 class="text-muted mb-3">Sistema</h5>
+    <div class="row g-3 mb-4">
+
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Saldo total en el sistema</div>
+                    <div class="fs-4 fw-bold">${{ saldo_total|floatformat:0 }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Usuarios activos <small>(últ. 4 sem.)</small></div>
+                    <div class="fs-4 fw-bold">{{ usuarios_activos }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Comentarios sin leer</div>
+                    <div class="fs-4 fw-bold {% if comentarios_sin_leer %}text-warning{% endif %}">
+                        {{ comentarios_sin_leer }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ── Distribución semanal ─────────────────────────────────────────── -->
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <h5 class="text-muted mb-0">Distribución semanal</h5>
+        <div class="btn-group btn-group-sm">
+            <a href="?fecha={{ fecha|date:'Y-m-d' }}&vista=compras"
+               class="btn {% if vista == 'compras' %}btn-dark{% else %}btn-outline-dark{% endif %}">
+                Compras
+            </a>
+            <a href="?fecha={{ fecha|date:'Y-m-d' }}&vista=entregas"
+               class="btn {% if vista == 'entregas' %}btn-dark{% else %}btn-outline-dark{% endif %}">
+                Entregas
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-lg-5">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <table class="table table-sm table-hover mb-0 text-center align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="text-start ps-3">Día</th>
+                                <th>Promedio</th>
+                                <th>Máximo</th>
+                                <th>Mínimo</th>
+                                <th class="text-muted small">Semanas</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for fila in tabla_semanal %}
+                            <tr>
+                                <td class="text-start ps-3 fw-semibold">{{ fila.dia }}</td>
+                                {% if fila.semanas %}
+                                <td>{{ fila.promedio }}</td>
+                                <td class="text-success fw-semibold">{{ fila.maximo }}</td>
+                                <td class="text-danger fw-semibold">{{ fila.minimo }}</td>
+                                <td class="text-muted small">{{ fila.semanas }}</td>
+                                {% else %}
+                                <td colspan="4" class="text-muted small">Sin datos</td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-7">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <canvas id="chartSemanal" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const labels = [{% for f in tabla_semanal %}"{{ f.dia }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+const promedios = [{% for f in tabla_semanal %}{{ f.promedio|default:"null" }}{% if not forloop.last %},{% endif %}{% endfor %}];
+const maximos   = [{% for f in tabla_semanal %}{{ f.maximo|default:"null" }}{% if not forloop.last %},{% endif %}{% endfor %}];
+const minimos   = [{% for f in tabla_semanal %}{{ f.minimo|default:"null" }}{% if not forloop.last %},{% endif %}{% endfor %}];
+
+new Chart(document.getElementById('chartSemanal'), {
+    type: 'bar',
+    data: {
+        labels,
+        datasets: [
+            { label: 'Promedio', data: promedios, backgroundColor: 'rgba(54,96,146,0.8)' },
+            { label: 'Máximo',   data: maximos,   backgroundColor: 'rgba(40,167,69,0.5)' },
+            { label: 'Mínimo',   data: minimos,   backgroundColor: 'rgba(220,53,69,0.5)' },
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom' } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+    }
+});
+</script>
+{% endblock %}

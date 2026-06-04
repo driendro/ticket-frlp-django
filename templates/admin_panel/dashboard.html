@@ -176,13 +176,30 @@ new Chart(document.getElementById('chartCargas'), {
 });
 
 new Chart(document.getElementById('chartSemanal'), {
-    type: 'bar',
+    type: 'line',
     data: {
         labels: {{ json_sem_labels|safe }},
         datasets: [
-            { label: 'Promedio', data: {{ json_sem_promedios|safe }}, backgroundColor: C.azul, borderRadius: 4 },
-            { label: 'Máximo',   data: {{ json_sem_maximos|safe }},   backgroundColor: C.verde, borderRadius: 4 },
-            { label: 'Mínimo',   data: {{ json_sem_minimos|safe }},   backgroundColor: C.rojo,  borderRadius: 4 },
+            {
+                label: 'Promedio',
+                data: {{ json_sem_promedios|safe }},
+                borderColor: C.azul, backgroundColor: 'rgba(54,96,146,0.1)',
+                tension: 0.3, fill: false, pointRadius: 5, pointHoverRadius: 7,
+            },
+            {
+                label: 'Máximo',
+                data: {{ json_sem_maximos|safe }},
+                borderColor: C.verde, backgroundColor: 'rgba(40,167,69,0.08)',
+                tension: 0.3, fill: false, pointRadius: 5, pointHoverRadius: 7,
+                borderDash: [5, 3],
+            },
+            {
+                label: 'Mínimo',
+                data: {{ json_sem_minimos|safe }},
+                borderColor: C.rojo, backgroundColor: 'rgba(220,53,69,0.08)',
+                tension: 0.3, fill: false, pointRadius: 5, pointHoverRadius: 7,
+                borderDash: [5, 3],
+            },
         ]
     },
     options: {

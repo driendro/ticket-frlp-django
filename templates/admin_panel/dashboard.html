@@ -106,7 +106,39 @@
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
             <h6 class="text-muted mb-3">Distribución por día de semana — promedio / máximo / mínimo</h6>
-            <canvas id="chartSemanal" height="80"></canvas>
+            <div class="row g-3 align-items-center">
+                <div class="col-12 col-lg-7">
+                    <canvas id="chartSemanal" height="120"></canvas>
+                </div>
+                <div class="col-12 col-lg-5">
+                    <table class="table table-sm table-hover mb-0 text-center align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="text-start ps-3">Día</th>
+                                <th>Promedio</th>
+                                <th class="text-success">Máx.</th>
+                                <th class="text-danger">Mín.</th>
+                                <th class="text-muted">Sem.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for f in tabla_semanal %}
+                            <tr>
+                                <td class="text-start ps-3 fw-semibold">{{ f.dia }}</td>
+                                {% if f.semanas %}
+                                <td>{{ f.promedio }}</td>
+                                <td class="text-success fw-semibold">{{ f.maximo }}</td>
+                                <td class="text-danger fw-semibold">{{ f.minimo }}</td>
+                                <td class="text-muted small">{{ f.semanas }}</td>
+                                {% else %}
+                                <td colspan="4" class="text-muted small">Sin datos</td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 

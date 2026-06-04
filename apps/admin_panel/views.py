@@ -1122,16 +1122,20 @@ def _dashboard_data(fecha, vista):
             by_wd[wd].append(r['total'])
 
     sem_promedios, sem_maximos, sem_minimos = [], [], []
+    tabla_semanal = []
     for i in range(5):
         counts = by_wd[i]
         if counts:
-            sem_promedios.append(round(mean(counts), 1))
-            sem_maximos.append(max(counts))
-            sem_minimos.append(min(counts))
+            p, mx, mn = round(mean(counts), 1), max(counts), min(counts)
+            sem_promedios.append(p)
+            sem_maximos.append(mx)
+            sem_minimos.append(mn)
+            tabla_semanal.append({'dia': DIAS[i], 'promedio': p, 'maximo': mx, 'minimo': mn, 'semanas': len(counts)})
         else:
             sem_promedios.append(None)
             sem_maximos.append(None)
             sem_minimos.append(None)
+            tabla_semanal.append({'dia': DIAS[i], 'promedio': None, 'maximo': None, 'minimo': None, 'semanas': 0})
 
     # ── Índices TMDA ──────────────────────────────────────────────────────
     from django.db.models.functions import ExtractHour
@@ -1198,6 +1202,7 @@ def _dashboard_data(fecha, vista):
         'json_menu_data':      json.dumps(por_menu),
         'json_turno_data':     json.dumps(por_turno),
         'json_cargas_data':    json.dumps(list(cargas_metodo.values())),
+        'tabla_semanal':       tabla_semanal,
         'json_sem_labels':     json.dumps(DIAS_CORTO),
         'json_sem_promedios':  json.dumps(sem_promedios),
         'json_sem_maximos':    json.dumps(sem_maximos),

@@ -1137,25 +1137,35 @@ def _dashboard_data(fecha, vista):
             sem_minimos.append(None)
             tabla_semanal.append({'dia': DIAS[i], 'promedio': None, 'maximo': None, 'minimo': None, 'semanas': 0})
 
-    # ── Índices TMDA ──────────────────────────────────────────────────────
+    # ── Índices VMDA ──────────────────────────────────────────────────────
     from django.db.models.functions import ExtractHour
-    all_daily = list(Compra.objects.values('dia_comprado').annotate(total=Count('id')))
-    all_counts = [r['total'] for r in all_daily]
-    tmda = mean(all_counts) if all_counts else 1
 
-    # Índice mensual (12 meses)
+    # VMDA compras
+    all_daily_c = list(Compra.objects.values('dia_comprado').annotate(total=Count('id')))
+    all_counts_c = [r['total'] for r in all_daily_c]
+    vmda_compras = round(mean(all_counts_c), 1) if all_counts_c else 1
+
+    # VMDA retiros
+    all_daily_r = list(
+        Compra.objects.filter(retiro=True)
+        .values('dia_comprado').annotate(total=Count('id'))
+    )
+    all_counts_r = [r['total'] for r in all_daily_r]
+    vmda_retiros = round(mean(all_counts_r), 1) if all_counts_r else 1
+
+    # Índice mensual — basado en retiros
     by_month = defaultdict(list)
-    for r in all_daily:
+    for r in all_daily_r:
         by_month[r['dia_comprado'].month].append(r['total'])
     MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
     idx_mensual = [
-        round(mean(by_month[m]) / tmda * 100, 1) if by_month[m] else None
+        round(mean(by_month[m]) / vmda_retiros * 100, 1) if by_month[m] else None
         for m in range(1, 13)
     ]
 
-    # Índice semanal (lun–vie)
+    # Índice semanal — basado en retiros
     by_wd_all = defaultdict(list)
-    for r in all_daily:
+    for r in all_daily_r:
         wd = r['dia_comprado'].weekday()
         if wd < 5:
             by_wd_all[wd].append(r['total'])
@@ -1207,8 +1217,9 @@ def _dashboard_data(fecha, vista):
         'json_sem_promedios':  json.dumps(sem_promedios),
         'json_sem_maximos':    json.dumps(sem_maximos),
         'json_sem_minimos':    json.dumps(sem_minimos),
-        # índices TMDA
-        'tmda': round(tmda, 1),
+        # índices VMDA
+        'vmda_compras': vmda_compras,
+        'vmda_retiros': vmda_retiros,
         'json_idx_mensual':  json.dumps(idx_mensual),
         'json_meses_labels': json.dumps(MESES),
         'json_idx_semanal':  json.dumps(idx_semanal),

@@ -1,10 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}Dashboard{% endblock %}
 
-{% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-{% endblock %}
-
 {% block content %}
 <div class="container-fluid py-4">
 
@@ -49,7 +45,7 @@
         </div>
         <div class="col-6 col-md-3">
             <div class="card border-0 shadow-sm text-center py-2">
-                <div class="text-muted small">Usuarios activos <small class="text-muted">(4 sem.)</small></div>
+                <div class="text-muted small">Usuarios activos <small>(4 sem.)</small></div>
                 <div class="fs-3 fw-bold">{{ usuarios_activos }}</div>
             </div>
         </div>
@@ -78,7 +74,7 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex flex-column align-items-center">
                     <h6 class="text-muted mb-3">Por menú — {{ fecha|date:"d/m" }}</h6>
-                    <div style="max-width:220px; width:100%">
+                    <div style="max-width:220px;width:100%">
                         <canvas id="chartMenu"></canvas>
                     </div>
                 </div>
@@ -88,7 +84,7 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex flex-column align-items-center">
                     <h6 class="text-muted mb-3">Por turno — {{ fecha|date:"d/m" }}</h6>
-                    <div style="max-width:220px; width:100%">
+                    <div style="max-width:220px;width:100%">
                         <canvas id="chartTurno"></canvas>
                     </div>
                 </div>
@@ -98,7 +94,7 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex flex-column align-items-center">
                     <h6 class="text-muted mb-3">Cargas por método — {{ fecha|date:"d/m" }}</h6>
-                    <div style="max-width:220px; width:100%">
+                    <div style="max-width:220px;width:100%">
                         <canvas id="chartCargas"></canvas>
                     </div>
                 </div>
@@ -115,30 +111,28 @@
     </div>
 
 </div>
+{% endblock %}
 
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-const CHART_COLORS = {
+const C = {
     azul:    'rgba(54,96,146,0.85)',
     verde:   'rgba(40,167,69,0.75)',
     rojo:    'rgba(220,53,69,0.75)',
     naranja: 'rgba(230,126,34,0.85)',
     violeta: 'rgba(108,71,182,0.85)',
-    gris:    'rgba(150,150,150,0.6)',
 };
-const OPTS_DONUT = {
+const DONUT_OPTS = {
     responsive: true,
-    plugins: {
-        legend: { position: 'bottom', labels: { boxWidth: 14 } }
-    }
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 14 } } }
 };
 
-// ── Línea temporal ──────────────────────────────────────────────────────
 new Chart(document.getElementById('chartLinea'), {
     type: 'bar',
     data: {
         labels: {{ json_linea_labels|safe }},
         datasets: [{
-            label: '{% if vista == "entregas" %}Entregas{% else %}Compras{% endif %}',
             data: {{ json_linea_data|safe }},
             backgroundColor: {{ json_linea_colors|safe }},
             borderRadius: 3,
@@ -154,69 +148,41 @@ new Chart(document.getElementById('chartLinea'), {
     }
 });
 
-// ── Menú ────────────────────────────────────────────────────────────────
 new Chart(document.getElementById('chartMenu'), {
     type: 'doughnut',
     data: {
         labels: ['Básico', 'Vegetariano', 'Sin TACC'],
-        datasets: [{
-            data: {{ json_menu_data|safe }},
-            backgroundColor: [CHART_COLORS.azul, CHART_COLORS.verde, CHART_COLORS.naranja],
-        }]
+        datasets: [{ data: {{ json_menu_data|safe }}, backgroundColor: [C.azul, C.verde, C.naranja] }]
     },
-    options: OPTS_DONUT,
+    options: DONUT_OPTS,
 });
 
-// ── Turno ───────────────────────────────────────────────────────────────
 new Chart(document.getElementById('chartTurno'), {
     type: 'doughnut',
     data: {
         labels: ['Mediodía', 'Noche'],
-        datasets: [{
-            data: {{ json_turno_data|safe }},
-            backgroundColor: [CHART_COLORS.azul, CHART_COLORS.violeta],
-        }]
+        datasets: [{ data: {{ json_turno_data|safe }}, backgroundColor: [C.azul, C.violeta] }]
     },
-    options: OPTS_DONUT,
+    options: DONUT_OPTS,
 });
 
-// ── Cargas por método ───────────────────────────────────────────────────
 new Chart(document.getElementById('chartCargas'), {
     type: 'doughnut',
     data: {
         labels: ['Efectivo', 'Virtual', 'MP'],
-        datasets: [{
-            data: {{ json_cargas_data|safe }},
-            backgroundColor: [CHART_COLORS.verde, CHART_COLORS.azul, CHART_COLORS.naranja],
-        }]
+        datasets: [{ data: {{ json_cargas_data|safe }}, backgroundColor: [C.verde, C.azul, C.naranja] }]
     },
-    options: OPTS_DONUT,
+    options: DONUT_OPTS,
 });
 
-// ── Distribución semanal ────────────────────────────────────────────────
 new Chart(document.getElementById('chartSemanal'), {
     type: 'bar',
     data: {
         labels: {{ json_sem_labels|safe }},
         datasets: [
-            {
-                label: 'Promedio',
-                data: {{ json_sem_promedios|safe }},
-                backgroundColor: CHART_COLORS.azul,
-                borderRadius: 4,
-            },
-            {
-                label: 'Máximo',
-                data: {{ json_sem_maximos|safe }},
-                backgroundColor: CHART_COLORS.verde,
-                borderRadius: 4,
-            },
-            {
-                label: 'Mínimo',
-                data: {{ json_sem_minimos|safe }},
-                backgroundColor: CHART_COLORS.rojo,
-                borderRadius: 4,
-            },
+            { label: 'Promedio', data: {{ json_sem_promedios|safe }}, backgroundColor: C.azul, borderRadius: 4 },
+            { label: 'Máximo',   data: {{ json_sem_maximos|safe }},   backgroundColor: C.verde, borderRadius: 4 },
+            { label: 'Mínimo',   data: {{ json_sem_minimos|safe }},   backgroundColor: C.rojo,  borderRadius: 4 },
         ]
     },
     options: {

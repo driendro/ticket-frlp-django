@@ -12,7 +12,7 @@
         <div class="collapse navbar-collapse" id="navbarMain">
             <ul class="navbar-nav ms-auto align-items-center">
 
-                {% if request.user.is_authenticated and not request.user.is_staff %}
+                {% if request.user.es_comprador %}
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'comedor:index' %}">
                         <i class="bi bi-cart-plus me-1"></i> Comprar
@@ -128,7 +128,7 @@
                         {{ request.user.apellido }}, {{ request.user.nombre }}
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end" style="background-color: #212529;">
-                        {% if not request.user.is_staff %}
+                        {% if request.user.es_comprador %}
                         <li>
                             <a class="dropdown-item text-white" href="{% url 'comedor:movimientos' %}">
                                 <i class="bi bi-clock-history me-1"></i> Últimos movimientos
@@ -139,7 +139,8 @@
                                 <i class="bi bi-arrow-counterclockwise me-1"></i> Devoluciones
                             </a>
                         </li>
-                        {% else %}
+                        {% endif %}
+                        {% if request.user.is_staff %}
                         <li>
                             <a class="dropdown-item text-white" href="{% url 'comedor:index' %}">
                                 <i class="bi bi-cart-plus me-1"></i> Ir al Comedor

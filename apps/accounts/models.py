@@ -56,6 +56,10 @@ class CustomUser(AbstractUser):
         return f"{self.last_name}, {self.first_name}"
 
     @property
+    def es_comprador(self):
+        return self.groups.filter(name='comprador').exists()
+
+    @property
     def es_repartidor(self):
         return self.groups.filter(name='repartidor').exists()
 

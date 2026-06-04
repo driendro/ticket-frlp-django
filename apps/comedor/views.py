@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from django.core.paginator import Paginator
 from django.shortcuts import render, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
+from .mixins import CompradorRequiredMixin
 from django.contrib import messages
 from django.views import View
 from django.utils import timezone
@@ -21,7 +22,7 @@ from .services import (
 from .models import Compra
 
 
-class IndexView(LoginRequiredMixin, View):
+class IndexView(CompradorRequiredMixin, View):
 
     template_name = 'comedor/index.html'
 
@@ -135,7 +136,7 @@ class IndexView(LoginRequiredMixin, View):
 # apps/comedor/views.py - agregar estas vistas al archivo existente
 
 
-class DevolverCompraView(LoginRequiredMixin, View):
+class DevolverCompraView(CompradorRequiredMixin, View):
 
     template_name = 'comedor/devolver_compra.html'
 
@@ -258,7 +259,7 @@ class DevolverCompraView(LoginRequiredMixin, View):
         return redirect('comedor:devolver')
 
 
-class MovimientosView(LoginRequiredMixin, View):
+class MovimientosView(CompradorRequiredMixin, View):
 
     template_name = 'comedor/movimientos.html'
 

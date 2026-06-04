@@ -55,6 +55,26 @@ class CustomUser(AbstractUser):
     def nombre_completo(self):
         return f"{self.last_name}, {self.first_name}"
 
+    @property
+    def es_repartidor(self):
+        return self.groups.filter(name='repartidor').exists()
+
+    @property
+    def es_cajero_o_admin(self):
+        return self.groups.filter(name__in=['cajero', 'admin']).exists()
+
+    @property
+    def es_administrador(self):
+        return self.groups.filter(name='admin').exists() or self.is_superuser
+
+    @property
+    def home_url_name(self):
+        if self.groups.filter(name='repartidor').exists():
+            return 'admin_panel:repartidor'
+        if self.groups.filter(name__in=['admin', 'cajero']).exists():
+            return 'admin_panel:index'
+        return 'comedor:index'
+
     def get_precio(self):
         """Retorna el costo de la vianda según tipo y beca."""
         from apps.core.models import Precio

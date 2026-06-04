@@ -12,7 +12,7 @@ class AdminRequiredMixin(LoginRequiredMixin):
             return self.handle_no_permission()
         if not request.user.is_staff:
             messages.error(request, 'No tenés permisos para acceder.')
-            return redirect('comedor:index')
+            return redirect(request.user.home_url_name)
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -24,7 +24,7 @@ class CajeroRequiredMixin(AdminRequiredMixin):
         if hasattr(result, 'status_code') and result.status_code == 302:
             return result
         if not request.user.groups.filter(
-            name__in=['cajero', 'administrador']
+            name__in=['cajero', 'admin']
         ).exists() and not request.user.is_superuser:
             messages.error(request, 'No tenés permisos de cajero.')
             return redirect('comedor:index')
@@ -39,7 +39,7 @@ class AdministradorRequiredMixin(AdminRequiredMixin):
         if hasattr(result, 'status_code') and result.status_code == 302:
             return result
         if not request.user.groups.filter(
-            name='administrador'
+            name='admin'
         ).exists() and not request.user.is_superuser:
             messages.error(request, 'No tenés permisos de administrador.')
             return redirect('admin_panel:index')

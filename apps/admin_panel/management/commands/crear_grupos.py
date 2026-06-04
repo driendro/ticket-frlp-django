@@ -7,7 +7,7 @@ class Command(BaseCommand):
     help = 'Crea los grupos de usuarios del sistema'
 
     def handle(self, *args, **kwargs):
-        grupos = ['cajero', 'administrador', 'repartidor']
+        grupos = ['comprador', 'cajero', 'admin', 'repartidor']
         for nombre in grupos:
             grupo, creado = Group.objects.get_or_create(name=nombre)
             if creado:

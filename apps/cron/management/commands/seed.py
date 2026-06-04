@@ -15,7 +15,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('Seed completado.'))
 
     def _crear_grupos(self):
-        for nombre in ['cajero', 'administrador', 'repartidor']:
+        for nombre in ['comprador', 'cajero', 'admin', 'repartidor']:
             Group.objects.get_or_create(name=nombre)
         self.stdout.write('  Grupos creados.')
 
@@ -89,7 +89,7 @@ class Command(BaseCommand):
                 'saldo': 2000,
                 'es_becado': False,
                 'password': 'test1234',
-                'grupo': None,
+                'grupos': ['comprador'],
                 'is_staff': False,
             },
             {
@@ -103,7 +103,7 @@ class Command(BaseCommand):
                 'saldo': 500,
                 'es_becado': True,
                 'password': 'test1234',
-                'grupo': None,
+                'grupos': ['comprador'],
                 'is_staff': False,
             },
             {
@@ -117,7 +117,7 @@ class Command(BaseCommand):
                 'saldo': 3000,
                 'es_becado': False,
                 'password': 'test1234',
-                'grupo': None,
+                'grupos': ['comprador'],
                 'is_staff': False,
             },
             {
@@ -131,7 +131,7 @@ class Command(BaseCommand):
                 'saldo': 1500,
                 'es_becado': False,
                 'password': 'test1234',
-                'grupo': None,
+                'grupos': ['comprador'],
                 'is_staff': False,
             },
             {
@@ -145,21 +145,21 @@ class Command(BaseCommand):
                 'saldo': 0,
                 'es_becado': False,
                 'password': 'test1234',
-                'grupo': 'cajero',
+                'grupos': ['cajero'],
                 'is_staff': True,
             },
             {
                 'documento': 66666666,
                 'username': '66666666',
                 'first_name': 'Laura',
-                'last_name': 'Administrador',
+                'last_name': 'Admin',
                 'email': 'admin@test.com',
                 'tipo': 'No Docente',
                 'especialidad': None,
                 'saldo': 0,
                 'es_becado': False,
                 'password': 'test1234',
-                'grupo': 'administrador',
+                'grupos': ['cajero', 'admin'],
                 'is_staff': True,
             },
             {
@@ -173,13 +173,13 @@ class Command(BaseCommand):
                 'saldo': 0,
                 'es_becado': False,
                 'password': 'test1234',
-                'grupo': 'repartidor',
+                'grupos': ['repartidor'],
                 'is_staff': True,
             },
         ]
 
         for datos in usuarios:
-            grupo_nombre = datos.pop('grupo')
+            grupos_nombres = datos.pop('grupos')
             password = datos.pop('password')
             is_staff = datos.pop('is_staff')
 
@@ -193,8 +193,8 @@ class Command(BaseCommand):
                 usuario.is_staff = is_staff
                 usuario.save()
 
-                if grupo_nombre:
-                    grupo = Group.objects.get(name=grupo_nombre)
+                for nombre in grupos_nombres:
+                    grupo = Group.objects.get(name=nombre)
                     usuario.groups.add(grupo)
 
                 self.stdout.write(

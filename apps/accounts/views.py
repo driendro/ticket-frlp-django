@@ -12,7 +12,7 @@ class LoginView(View):
 
     def get(self, request):
         if request.user.is_authenticated:
-            return redirect('comedor:index')
+            return redirect(request.user.home_url_name)
         return render(request, self.template_name)
 
 
@@ -41,12 +41,7 @@ class LoginView(View):
             return render(request, self.template_name)
     
         login(request, user)
-    
-        # Redirigir según tipo de usuario
-        if user.is_staff:
-            return redirect('admin_panel:index')
-    
-        return redirect('comedor:index')
+        return redirect(user.home_url_name)
 
 
 class LogoutView(View):

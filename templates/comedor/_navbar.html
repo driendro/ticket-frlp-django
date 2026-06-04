@@ -30,6 +30,19 @@
                         <i class="bi bi-envelope me-1"></i> Contacto
                     </a>
                 </li>
+                {% if request.user.es_cajero_o_admin %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'admin_panel:index' %}">
+                        <i class="bi bi-shield-lock me-1"></i> Panel Admin
+                    </a>
+                </li>
+                {% elif request.user.es_repartidor %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'admin_panel:repartidor' %}">
+                        <i class="bi bi-bag-check me-1"></i> Entregar Viandas
+                    </a>
+                </li>
+                {% endif %}
                 {% if request.user.is_authenticated %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">

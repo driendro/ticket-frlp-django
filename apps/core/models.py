@@ -103,9 +103,10 @@ class Comentario(models.Model):
         on_delete=models.CASCADE,
         related_name='comentarios'
     )
-    comentario = models.TextField()
+    comentario = models.TextField(max_length=1000)
     fecha = models.DateField(auto_now_add=True)
     hora = models.TimeField(auto_now_add=True)
+    leido = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = 'Comentario'

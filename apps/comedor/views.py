@@ -306,3 +306,27 @@ class ContactoView(View):
 
     def get(self, request):
         return render(request, self.template_name, {'titulo': 'Contacto'})
+
+
+class ComentarioView(LoginRequiredMixin, View):
+
+    template_name = 'comedor/comentario.html'
+
+    def get(self, request):
+        return render(request, self.template_name, {'titulo': '¡Haz un comentario!'})
+
+    def post(self, request):
+        from apps.core.models import Comentario
+        texto = request.POST.get('comentario', '').strip()
+
+        if not texto:
+            messages.error(request, 'El comentario no puede estar vacío.')
+            return render(request, self.template_name, {'titulo': '¡Haz un comentario!'})
+
+        if len(texto) > 1000:
+            messages.error(request, 'El comentario no puede superar los 1000 caracteres.')
+            return render(request, self.template_name, {'titulo': '¡Haz un comentario!'})
+
+        Comentario.objects.create(usuario=request.user, comentario=texto)
+        messages.success(request, '¡Gracias por tu comentario!')
+        return redirect('comedor:comentario')

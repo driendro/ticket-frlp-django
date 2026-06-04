@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Haz un comentario{% endblock %}
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <h1 class="fw-bold mb-4">¡Haz un comentario!</h1>
+            <p class="text-muted mb-4">
+                Tu opinión nos ayuda a mejorar. Podés dejarnos sugerencias, quejas o cualquier comentario sobre el servicio.
+            </p>
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <textarea
+                        name="comentario"
+                        class="form-control"
+                        rows="6"
+                        maxlength="1000"
+                        placeholder="Escribí tu comentario acá..."
+                        required
+                    ></textarea>
+                    <div class="form-text text-end">Máximo 1000 caracteres.</div>
+                </div>
+                <button type="submit" class="btn btn-dark">
+                    <i class="bi bi-send me-1"></i> Enviar comentario
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

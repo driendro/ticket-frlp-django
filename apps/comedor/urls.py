@@ -10,4 +10,5 @@ urlpatterns = [
     path('menu/', views.MenuView.as_view(), name='menu'),
     path('faq/', views.FaqView.as_view(), name='faq'),
     path('contacto/', views.ContactoView.as_view(), name='contacto'),
+    path('comentario/', views.ComentarioView.as_view(), name='comentario'),
 ]

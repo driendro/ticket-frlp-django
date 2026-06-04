@@ -409,9 +409,11 @@ class EntregarViandaView(RepartidorRequiredMixin, View):
         compra_id = request.POST.get('idCompra')
         compra = get_object_or_404(Compra, pk=compra_id)
 
+        from django.utils import timezone
         compra.retiro = True
         compra.repartidor = request.user
-        compra.save(update_fields=['retiro', 'repartidor'])
+        compra.hora_retiro = timezone.localtime().time()
+        compra.save(update_fields=['retiro', 'repartidor', 'hora_retiro'])
 
         messages.success(request, 'Vianda entregada correctamente.')
         return redirect('admin_panel:repartidor')
@@ -1131,6 +1133,55 @@ def _dashboard_data(fecha, vista):
             sem_maximos.append(None)
             sem_minimos.append(None)
 
+    # ── Índices TMDA ──────────────────────────────────────────────────────
+    from django.db.models.functions import ExtractHour
+    all_daily = list(Compra.objects.values('dia_comprado').annotate(total=Count('id')))
+    all_counts = [r['total'] for r in all_daily]
+    tmda = mean(all_counts) if all_counts else 1
+
+    # Índice mensual (12 meses)
+    by_month = defaultdict(list)
+    for r in all_daily:
+        by_month[r['dia_comprado'].month].append(r['total'])
+    MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+    idx_mensual = [
+        round(mean(by_month[m]) / tmda * 100, 1) if by_month[m] else None
+        for m in range(1, 13)
+    ]
+
+    # Índice semanal (lun–vie)
+    by_wd_all = defaultdict(list)
+    for r in all_daily:
+        wd = r['dia_comprado'].weekday()
+        if wd < 5:
+            by_wd_all[wd].append(r['total'])
+    all_wd = [c for wd in range(5) for c in by_wd_all[wd]]
+    weekly_avg_all = mean(all_wd) if all_wd else 1
+    idx_semanal = [
+        round(mean(by_wd_all[wd]) / weekly_avg_all * 100, 1) if by_wd_all[wd] else None
+        for wd in range(5)
+    ]
+
+    # Índice horario (retiros con hora_retiro)
+    hourly_qs = (
+        Compra.objects
+        .filter(hora_retiro__isnull=False)
+        .annotate(h=ExtractHour('hora_retiro'))
+        .values('h', 'dia_comprado')
+        .annotate(cnt=Count('id'))
+    )
+    by_hour = defaultdict(list)
+    for r in hourly_qs:
+        by_hour[r['h']].append(r['cnt'])
+    all_hours = sorted(by_hour.keys())
+    if all_hours:
+        total_daily_retiro = sum(mean(by_hour[h]) for h in all_hours)
+        expected_per_hour = total_daily_retiro / len(all_hours)
+        idx_horario = [round(mean(by_hour[h]) / expected_per_hour * 100, 1) for h in all_hours]
+        hora_labels = [f'{h:02d}:00' for h in all_hours]
+    else:
+        idx_horario, hora_labels = [], []
+
     return {
         # KPIs
         'fecha': fecha,
@@ -1151,6 +1202,13 @@ def _dashboard_data(fecha, vista):
         'json_sem_promedios':  json.dumps(sem_promedios),
         'json_sem_maximos':    json.dumps(sem_maximos),
         'json_sem_minimos':    json.dumps(sem_minimos),
+        # índices TMDA
+        'tmda': round(tmda, 1),
+        'json_idx_mensual':  json.dumps(idx_mensual),
+        'json_meses_labels': json.dumps(MESES),
+        'json_idx_semanal':  json.dumps(idx_semanal),
+        'json_idx_horario':  json.dumps(idx_horario),
+        'json_hora_labels':  json.dumps(hora_labels),
         # para exportar excel
         'by_wd': by_wd,
         'diarios_dict': diarios_dict,

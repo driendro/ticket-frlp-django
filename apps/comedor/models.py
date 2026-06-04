@@ -38,6 +38,7 @@ class Compra(models.Model):
     external_reference = models.CharField(
         max_length=255, null=True, blank=True)
     retiro = models.BooleanField(default=False)
+    hora_retiro = models.TimeField(null=True, blank=True)
     repartidor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

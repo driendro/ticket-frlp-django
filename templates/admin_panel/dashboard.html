@@ -110,6 +110,38 @@
         </div>
     </div>
 
+    <!-- ── Índices TMDA ───────────────────────────────────────────────── -->
+    <div class="d-flex align-items-baseline gap-2 mb-3">
+        <h5 class="text-muted mb-0">Índices relativos al TMDA</h5>
+        <span class="badge bg-secondary">TMDA = {{ tmda }} compras/día</span>
+    </div>
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-3">Curva mensual</h6>
+                    <canvas id="chartIdxMensual" height="160"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-3">Curva semanal</h6>
+                    <canvas id="chartIdxSemanal" height="160"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-3">Curva diaria (hora de retiro)</h6>
+                    <canvas id="chartIdxHorario" height="160"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
 
@@ -174,6 +206,48 @@ new Chart(document.getElementById('chartCargas'), {
     },
     options: DONUT_OPTS,
 });
+
+function indexChart(id, labels, data, labelText) {
+    const baseline = { type: 'line', borderColor: 'rgba(220,53,69,0.6)',
+        borderDash: [6,3], borderWidth: 1.5, pointRadius: 0,
+        data: labels.map(() => 100), label: '100%' };
+    new Chart(document.getElementById(id), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: labelText,
+                    data,
+                    borderColor: C.azul,
+                    backgroundColor: 'rgba(54,96,146,0.08)',
+                    tension: 0.35,
+                    fill: true,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    spanGaps: true,
+                },
+                baseline,
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    ticks: { callback: v => v + '%' },
+                    grid: { color: 'rgba(0,0,0,0.05)' },
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+indexChart('chartIdxMensual', {{ json_meses_labels|safe }}, {{ json_idx_mensual|safe }}, 'Índice mensual');
+indexChart('chartIdxSemanal', {{ json_sem_labels|safe }}, {{ json_idx_semanal|safe }}, 'Índice semanal');
+indexChart('chartIdxHorario', {{ json_hora_labels|safe }}, {{ json_idx_horario|safe }}, 'Índice horario');
 
 new Chart(document.getElementById('chartSemanal'), {
     type: 'line',

@@ -20,3 +20,16 @@ Documento | Tipo          | Password | Acceso
 55555555  | Cajero        | test1234 | /panel/
 66666666  | Administrador | test1234 | /panel/
 77777777  | Repartidor    | test1234 | /panel/
+
+
+
+
+Quiero una estadistica que muestre las compras promedio por dia, por tipo, y el promedio de entregas, en ese caso puede ser barras entregadas y sobre esa las faltantes para mostrar el total por tipo de bianda
+
+
+
+lo de tarjetas de hoy: crearia una estadistica con promedios diarios, con la posibilidad de indicar una fecha particular y ver sus
+  datos. Lo de usuarios con saldos <0 no me interesa. Pero si podria ver el monto total del sistema (suma de saldos), y los usuarios
+  activos aquellos que han comprado algo en las ultimas 4 semanas. Y lo de la semana, armaria un cuadro con el promedio de compras, el
+  maximo y el minimo, con la posibilidad de ver compras y entregas. algo q me sirva para estimar como se distribuyen las compras en las
+  semanas
